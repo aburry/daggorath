@@ -187,7 +187,7 @@ init model cmd =
             []
 
         inventory =
-            [ setRevealed (item Thing.LunarTorch 1)
+            [ setRevealed (item Thing.PineTorch 1)
             , setRevealed (item Thing.WoodenSword 2)
             ]
     in
@@ -214,6 +214,9 @@ type Msg
     | Submit
     | IntroTick Time
     | DeadTick Time
+    | FinalTick Time
+    | PrepareTick Time
+    | IntermissionTick Time
     | Torch Time
     | Load SerializedModel
     | LoadError String
@@ -227,24 +230,53 @@ displayPlayerDied model =
     model.status == "dead"
 
 
+displayWizardDied model =
+    List.isEmpty (List.filter (\e -> e.statistics.creature == Thing.MoonWizard) model.monsters)
+
+
+displayEnding model =
+    model.display == "final"
+
+
+displayPrepare model =
+    model.display == "prepare"
+
+
+displayIntermission model =
+    model.display == "intermission"
+
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
     if displayIntro model then
         Sub.batch
             [ Time.every (second / 4) IntroTick
-            , loadSub Load
-            , errorSub LoadError
             ]
     else if displayPlayerDied model then
         Sub.batch
             [ Time.every (second / 4) DeadTick
+            ]
+    else if displayEnding model then
+        Sub.batch
+            [ Time.every (second / 4) FinalTick
+            ]
+    else if displayPrepare model then
+        Sub.batch
+            [ Time.every (second / 4) PrepareTick
+            ]
+    else if displayIntermission model then
+        Sub.batch
+            [ Time.every (second / 4) IntermissionTick
+            ]
+    else if displayWizardDied model then
+        Sub.batch
+            [ Time.every (Basics.max ((60.0 / model.bpm) * second) (second / 60.0)) Tick
             , loadSub Load
             , errorSub LoadError
             ]
     else
         Sub.batch
-            [ -- Time.every ((60.0 / model.bpm) * second) Tick
-              Time.every (Basics.max ((60.0 / model.bpm) * second) (second / 60.0)) Tick
+            [ Time.every (Basics.max ((60.0 / model.bpm) * second) (second / 60.0)) Tick
             , Time.every (Time.second * 0.25) Creatures
             , Time.every (Time.second * 60) Torch
             , loadSub Load
@@ -575,13 +607,13 @@ v_climb len adverbs model =
     case ( len, adverbs ) of
         ( 2, "Up" ) ->
             if canClimbUp room.ceiling then
-                ( { model | good = True, level = model.level - 1 }, Cmd.none )
+                ( { model | good = True, level = model.level - 1, display = "prepare" }, Cmd.none )
             else
                 ( { model | good = True }, Cmd.none )
 
         ( 2, "Down" ) ->
             if canClimbDown room.floor then
-                ( { model | good = True, level = model.level + 1 }, Cmd.none )
+                ( { model | good = True, level = model.level + 1, display = "prepare" }, Cmd.none )
             else
                 ( { model | good = True }, Cmd.none )
 
@@ -615,7 +647,7 @@ v_incant len adverb model =
                 , leftHand = activate ring newring model.leftHand
             }
 
-        f =
+        action =
             case adverb of
                 "Final" ->
                     incant Thing.SupremeRing Thing.FinalRing
@@ -631,10 +663,23 @@ v_incant len adverb model =
 
                 _ ->
                     model
+
+        endGame model =
+            let
+                final =
+                    List.filter (\e -> e.adj == "Final") (List.concat [ model.leftHand, model.rightHand ])
+            in
+            if List.isEmpty final then
+                model
+            else
+                { model | display = "final", frame = 0 }
+
+        final =
+            endGame action
     in
     case len of
         2 ->
-            ( { f | good = True }, Cmd.none )
+            ( { final | good = True }, Cmd.none )
 
         _ ->
             ( { model | good = False }, Cmd.none )
@@ -1255,6 +1300,15 @@ v_attack len adverbs model =
         ( model1, isHit ) =
             randomHit model m.statistics.power m.statistics.damage model.power
 
+        ( rnd, seed2 ) =
+            Random.step (Random.int 0 255) model1.seed
+
+        isHailMaryHit =
+            rnd < 64
+
+        workingTorch =
+            0 < List.length (List.filter (\e -> isLitTorch e && e.adj /= "Dead") model.inventory)
+
         target =
             hand adverbs
 
@@ -1273,7 +1327,11 @@ v_attack len adverbs model =
         damage =
             if List.isEmpty monster then
                 0
-            else if isHit || isIncantedRing weapon then
+            else if isIncantedRing weapon then
+                calcDamage model.power weapon.magic m.statistics.resistance weapon.attack m.statistics.defence
+            else if workingTorch && isHit then
+                calcDamage model.power weapon.magic m.statistics.resistance weapon.attack m.statistics.defence
+            else if not workingTorch && isHailMaryHit then
                 calcDamage model.power weapon.magic m.statistics.resistance weapon.attack m.statistics.defence
             else
                 0
@@ -1285,7 +1343,7 @@ v_attack len adverbs model =
             target.set
                 { model
                     | good = True
-                    , seed = model1.seed
+                    , seed = seed2
                     , response = " !!!"
                     , damage = model.damage + selfDamage
                 }
@@ -1294,11 +1352,13 @@ v_attack len adverbs model =
     case monster of
         [ m ] ->
             if isDeadCreature damagedCreature then
-                ( { model2
-                    | monsters = List.filter (\e -> not (equalPosition model e)) model.monsters
-                    , treasure = List.append model.treasure (List.map (\e -> { level = model.level, x = model.x, y = model.y, object = e }) m.inventory)
-                    , power = model.power + 1 / 8 * m.statistics.power
-                  }
+                ( gotoLevelFour
+                    { model2
+                        | monsters = List.filter (\e -> not (equalPosition model e)) model.monsters
+                        , treasure = List.append model.treasure (List.map (\e -> { level = model.level, x = model.x, y = model.y, object = e }) m.inventory)
+                        , power = model.power + 1 / 8 * m.statistics.power
+                    }
+                    damagedCreature
                 , Cmd.batch [ playSound { url = sound weapon.class, volume = 1.0 }, playSound { url = sound PlayerHitCreature, volume = 1.0 }, playSound { url = sound CreatureDied, volume = 1.0 } ]
                 )
             else
@@ -1308,6 +1368,23 @@ v_attack len adverbs model =
 
         _ ->
             ( { model2 | response = "" }, playSound { url = sound weapon.class, volume = 1.0 } )
+
+
+gotoLevelFour model creature =
+    let
+        emptyInventory inventory =
+            List.filter isLitTorch inventory
+    in
+    if creature.statistics.creature /= Thing.Demon then
+        model
+    else
+        { model
+            | level = 3
+            , x = 10
+            , y = 16
+            , display = "intermission"
+            , inventory = emptyInventory model.inventory
+        }
 
 
 randomHit model defenderPower defenderDamage attackerPower =
@@ -1547,6 +1624,12 @@ update msg model =
         LoadError str ->
             ( { model | history = loadError model.history }, Cmd.none )
 
+        PrepareTick newTime ->
+            if model.frame < 16 then
+                ( { model | frame = model.frame + 1 }, Cmd.none )
+            else
+                ( { model | display = "dungeon", frame = 0 }, Cmd.none )
+
         IntroTick newTime ->
             if model.frame < 16 then
                 ( { model | frame = model.frame + 1 }
@@ -1569,7 +1652,7 @@ update msg model =
                     Cmd.none
                 )
             else
-                ( { model | display = "dungeon", frame = 0 }, Cmd.none )
+                ( { model | display = "prepare", frame = 0 }, Cmd.none )
 
         DeadTick newTime ->
             if model.frame < 16 then
@@ -1584,7 +1667,45 @@ update msg model =
             else if model.frame < 32 then
                 ( { model | frame = model.frame + 1 }, Cmd.none )
             else
-                init { modelStart | display = "dungeon" } Cmd.none
+                init { modelStart | display = "dungeon", frame = 0 } Cmd.none
+
+        FinalTick newTime ->
+            if model.frame < 16 then
+                ( { model | frame = model.frame + 1 }
+                , if (model.frame % 4) == 0 then
+                    playSound { url = sound WizardFadeBuzz, volume = toFloat model.frame / 15.0 }
+                  else
+                    Cmd.none
+                )
+            else if model.frame == 16 then
+                ( { model | frame = model.frame + 1 }, playSound { url = sound WizardFadeCrash, volume = 1.0 } )
+            else
+                --model.frame < 32 then
+                ( { model | frame = model.frame + 1 }, Cmd.none )
+
+        IntermissionTick newTime ->
+            if model.frame < 16 then
+                ( { model | frame = model.frame + 1 }
+                , if (model.frame % 4) == 0 then
+                    playSound { url = sound WizardFadeBuzz, volume = toFloat model.frame / 15.0 }
+                  else
+                    Cmd.none
+                )
+            else if model.frame == 16 then
+                ( { model | frame = model.frame + 1 }, playSound { url = sound WizardFadeCrash, volume = 1.0 } )
+            else if model.frame < 32 then
+                ( { model | frame = model.frame + 1 }, Cmd.none )
+            else if model.frame == 32 then
+                ( { model | frame = model.frame + 1 }, playSound { url = sound WizardFadeCrash, volume = 1.0 } )
+            else if model.frame < 48 then
+                ( { model | frame = model.frame + 1 }
+                , if (model.frame % 4) == 0 then
+                    playSound { url = sound WizardFadeBuzz, volume = 1.0 - (toFloat (model.frame - 33) / 15.0) }
+                  else
+                    Cmd.none
+                )
+            else
+                ( { model | display = "prepare", frame = 0 }, Cmd.none )
 
 
 solid =
@@ -1739,7 +1860,7 @@ updateCreature creature ( model, cmd ) =
             equalPosition model creature
 
         action =
-            if treasure /= Maybe.Nothing then
+            if treasure /= Maybe.Nothing && not (List.member creature.statistics.creature [ Thing.Scorpion, Thing.MoonWizard, Thing.Demon ]) then
                 "treasure"
             else if player then
                 "attack"
@@ -1980,33 +2101,50 @@ tunnel x y t dir model =
         ( thisRoomMagic, thisRoomNormal ) =
             List.partition isMagic thisRoom
 
-        light dist getLight =
+        normalLight model obj =
+            if displayWizardDied model then
+                7
+            else
+                obj.normalLight
+
+        magicLight model obj =
+            if displayWizardDied model then
+                19
+            else
+                obj.magicLight
+
+        darkness model dist getLight =
+            -- Usually, brightness is proportional to the luminosity of the
+            -- source times the inverse square of the distance. In this model,
+            -- brightness is constant for some distance depending on the
+            -- luminosity of the source, then it decays exponentially for 6
+            -- units, until it is finally zero.
             let
                 activeTorch =
                     Maybe.withDefault (item Thing.Empty 0) (List.head (List.filter isLitTorch model.inventory))
 
-                torchLight =
-                    getLight activeTorch - (6 + round dist)
+                exponent =
+                    (6 + round dist) - getLight model activeTorch
 
                 pixelGap =
-                    if 0 < torchLight then
+                    if exponent < 0 then
                         0
-                    else if torchLight < -5 then
+                    else if 5 < exponent then
                         -1
                     else
-                        2 ^ -torchLight
+                        2 ^ exponent
             in
             pixelGap
 
         svgNormal =
-            if -1 < light t .normalLight then
-                [ Svg.g [ transform (distance t), strokeDasharray ("1, " ++ toString (light t .normalLight)), strokeDashoffset "5" ] (List.concat (List.map (\e -> image (foregroundColor model) e) thisRoomNormal)) ]
+            if -1 < darkness model t normalLight then
+                [ Svg.g [ transform (distance t), strokeDasharray ("1, " ++ toString (darkness model t normalLight)), strokeDashoffset "5" ] (List.concat (List.map (\e -> image (foregroundColor model) e) thisRoomNormal)) ]
             else
                 []
 
         svgMagic =
-            if -1 < light t .magicLight then
-                [ Svg.g [ transform (distance t), strokeDasharray ("1, " ++ toString (light t .magicLight)), strokeDashoffset "5" ] (List.concat (List.map (\e -> image (foregroundColor model) e) thisRoomMagic)) ]
+            if -1 < darkness model t magicLight then
+                [ Svg.g [ transform (distance t), strokeDasharray ("1, " ++ toString (darkness model t magicLight)), strokeDashoffset "5" ] (List.concat (List.map (\e -> image (foregroundColor model) e) thisRoomMagic)) ]
             else
                 []
 
@@ -2155,7 +2293,7 @@ viewDungeon model =
         (tunnel model.x model.y 0 model.orientation model)
 
 
-viewVision model =
+viewScroll adj model =
     let
         block x y colour =
             Svg.path [ transform ("translate(" ++ toString x ++ " " ++ toString y ++ ")"), stroke colour, fill colour, d "M 0 0 L 3 0 L 3 3 L 0 3 Z" ] []
@@ -2177,11 +2315,14 @@ viewVision model =
                                         Maze.getRoom model.level x y
                                 in
                                 if room == solid then
-                                    block (x * 4) (y * 4) "black"
+                                    block (x * 4) (y * 4) (backgroundColor model)
                                 else if (room.floor /= Maze.Solid) || (room.ceiling /= Maze.Solid) then
-                                    hole (x * 4) (y * 4) "blue"
+                                    Svg.g []
+                                        [ block (x * 4) (y * 4) (foregroundColor model)
+                                        , hole (x * 4) (y * 4) "blue"
+                                        ]
                                 else
-                                    block (x * 4) (y * 4) "transparent"
+                                    block (x * 4) (y * 4) (foregroundColor model)
                             )
                             (List.range 0 31)
                     )
@@ -2189,7 +2330,7 @@ viewVision model =
                 )
 
         player =
-            [ thing (model.x * 4) (model.y * 4) "black" ]
+            [ thing (model.x * 4) (model.y * 4) (backgroundColor model) ]
 
         creatures =
             List.map (\e -> thing (e.x * 4) (e.y * 4) "red") (List.filter (\e -> e.level == model.level) model.monsters)
@@ -2203,7 +2344,11 @@ viewVision model =
         , Svg.Attributes.viewBox "0 0 256 152"
         ]
         [ Svg.g [ transform ("translate(" ++ toString ((256 - 32 * 4) / 2) ++ "," ++ toString ((152 - 32 * 4) / 2) ++ ")") ]
-            (List.concat [ map, player, treasure, creatures ])
+            (if adj == "seer" then
+                List.concat [ map, player, treasure, creatures ]
+             else
+                List.concat [ map, player ]
+            )
         ]
 
 
@@ -2338,7 +2483,7 @@ backpack model object =
         Html.span [] [ Html.text (name object) ]
 
 
-wizardBuzzIn frame =
+wizardBuzzIn creature frame =
     div
         [ Html.Attributes.style
             [ ( "width", "768px" )
@@ -2355,13 +2500,37 @@ wizardBuzzIn frame =
                 , Svg.Attributes.viewBox "0 0 256 152"
                 ]
                 [ Svg.g [ strokeDasharray ("1," ++ toString (32 - (2 * frame))) ]
-                    (image "black" MoonWizard)
+                    (image "black" creature)
                 ]
             ]
         ]
 
 
-wizardMessage line1 line2 line3 =
+prepare model =
+    div
+        [ Html.Attributes.style
+            [ ( "width", "768px" )
+            , ( "margin-left", "auto" )
+            , ( "margin-right", "auto" )
+            , ( "display", "block" )
+            , ( "font-size", "16px" )
+            ]
+        ]
+        [ div
+            [ Html.Attributes.style
+                [ ( "align-items", "center" )
+                , ( "height", "456px" )
+                , ( "display", "flex" )
+                , ( "justify-content", "center" )
+                , ( "font-family", "fantasy" )
+                , ( "color", foregroundColor model )
+                ]
+            ]
+            [ Html.text "Prepare!" ]
+        ]
+
+
+wizardMessage creature line1 line2 line3 =
     div
         [ Html.Attributes.style
             [ ( "width", "768px" )
@@ -2377,7 +2546,7 @@ wizardMessage line1 line2 line3 =
                 , Svg.Attributes.height "456"
                 , Svg.Attributes.viewBox "0 0 256 152"
                 ]
-                (image "black" MoonWizard)
+                (image "black" creature)
             , div [ Html.Attributes.style [ ( "width", "768px" ), ( "text-align", "center" ) ] ] [ Html.text line1 ]
             , div [ Html.Attributes.style [ ( "width", "768px" ), ( "text-align", "center" ) ] ] [ Html.text line2 ]
             , div [ Html.Attributes.style [ ( "width", "768px" ), ( "text-align", "center" ) ] ] [ Html.text line3 ]
@@ -2385,7 +2554,7 @@ wizardMessage line1 line2 line3 =
         ]
 
 
-wizardBuzzOut frame =
+wizardBuzzOut creature frame =
     div
         [ Html.Attributes.style
             [ ( "width", "768px" )
@@ -2402,7 +2571,7 @@ wizardBuzzOut frame =
                 , Svg.Attributes.viewBox "0 0 256 152"
                 ]
                 [ Svg.g [ strokeDasharray ("1," ++ toString (2 * frame)) ]
-                    (image "black" MoonWizard)
+                    (image "black" creature)
                 ]
             ]
         ]
@@ -2410,37 +2579,51 @@ wizardBuzzOut frame =
 
 viewIntro model =
     if model.frame < 17 then
-        wizardBuzzIn model.frame
+        wizardBuzzIn MoonWizard model.frame
     else if model.frame < 25 then
-        wizardMessage "I dare ye enter..." "...the Dungeons of Daggorath!!!" ""
+        wizardMessage MoonWizard "I dare ye enter..." "...the Dungeons of Daggorath!!!" ""
     else if model.frame < 33 then
-        wizardMessage "I dare ye enter..." "...the Dungeons of Daggorath!!!" "(tribute)"
+        wizardMessage MoonWizard "I dare ye enter..." "...the Dungeons of Daggorath!!!" "(tribute)"
     else
         -- model.frame < 48
-        wizardBuzzOut (model.frame - 33)
+        wizardBuzzOut MoonWizard (model.frame - 33)
 
 
 viewDead model =
     if model.frame < 17 then
-        wizardBuzzIn model.frame
+        wizardBuzzIn MoonWizard model.frame
     else if model.frame < 33 then
-        wizardMessage "Yet another does not return..." "" ""
+        wizardMessage MoonWizard "Yet another does not return..." "" ""
     else
         div [] []
 
 
 viewIntermission model =
     if model.frame < 17 then
-        wizardBuzzIn model.frame
+        wizardBuzzIn MoonWizard model.frame
     else if model.frame < 33 then
-        wizardMessage "Enough! I tire of this play..." "prepare to meet thy doom!!!" ""
+        wizardMessage MoonWizard "Enough! I tire of this play..." "prepare to meet thy doom!!!" ""
     else
-        div [] []
+        -- model.frame < 48
+        wizardBuzzOut MoonWizard (model.frame - 33)
+
+
+viewEnding model =
+    if model.frame < 17 then
+        wizardBuzzIn StarWizard model.frame
+    else
+        wizardMessage StarWizard "Behold! Destiny awaits the hand" "of a new wizard..." ""
 
 
 view : Model -> Html Msg
 view model =
-    if model.display /= "intro" && not (isFainted model) && model.status /= "dead" then
+    if displayEnding model then
+        viewEnding model
+    else if displayIntermission model then
+        viewIntermission model
+    else if displayPlayerDied model then
+        viewDead model
+    else if model.display /= "intro" && not (isFainted model) && model.status /= "dead" then
         div
             [ Html.Attributes.style
                 [ ( "width", "768px" )
@@ -2455,11 +2638,17 @@ view model =
                 "dungeon" ->
                     viewDungeon
 
+                "wizarddead" ->
+                    viewDungeon
+
                 "seer" ->
-                    viewVision
+                    viewScroll "seer"
 
                 "vision" ->
-                    viewVision
+                    viewScroll "vision"
+
+                "prepare" ->
+                    prepare
 
                 _ ->
                     viewText
@@ -2473,8 +2662,6 @@ view model =
                 div [] []
             , div [ Html.Attributes.style [ ( "display", "none" ) ] ] [ Html.text (toString model) ]
             ]
-    else if model.status == "dead" then
-        viewDead model
     else
         viewIntro model
 

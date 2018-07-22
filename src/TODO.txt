@@ -1,18 +1,20 @@
 -- todo
 -- show-stoppers
---   unrevealed sword acts as wooden sword
---   1/4 chance to hit in the dark
---   special monster behaviours (eg. scorpion)
 --   fainting animation (drop buffered chars)
---   level transitions, Prepare!
---   winning
---   start button to enable sound
+--   unrevealed sword acts as wooden sword (torch and shield too)
+--   creatures should not be able to queue up a move
+--   input should maintain focus
+--   need a "Ready Player One" button to turn on sound
+--   creatures should drop items like a stack
+--   wait to see the demon dead
+--   all equipment but ring disappears when wizard defeated
+--   examine: "! Creature !" should be centred
+
 --   post to github site
 
 --   exact lexing for incanting and saving
 --   map goes away if scroll leaves hand
 --   parse needs to further process the input before saving
---   examine: "! Creature !" should be centred
 --   what should the heart volume be
 --   timers/animations
 --     wall collision
