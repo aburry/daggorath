@@ -1,0 +1,19 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Dungeons of Daggorath</title>
+  </head>
+  <body>
+    <div id="elm"></div>
+    <script src="main.js"></script>
+    <script src="sound.js"></script>
+    <script src="localstorage.js"></script>
+    <script>
+      var node = document.getElementById('elm');
+      var app = Elm.Main.embed(node);
+      playSoundPort(app);
+      localStoragePort(app);
+      </script>
+  </body>
+</html>
