@@ -16,9 +16,10 @@
 -}
 
 
-port module Main exposing (..)
+module Main exposing (..)
 
 import Array exposing (..)
+import Browser exposing (..)
 import Char exposing (..)
 import Dict exposing (..)
 import Html exposing (..)
@@ -26,7 +27,6 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Json.Decode exposing (..)
 import LocalStoragePort exposing (..)
-import Maybe exposing (..)
 import Maze exposing (..)
 import Random exposing (..)
 import Regex exposing (..)
@@ -37,170 +37,20 @@ import Thing exposing (..)
 import Time exposing (..)
 
 
-main : Program Never Model Msg
+main : Program () Model Msg
 main =
-    Html.program
-        { init = init modelStart Cmd.none
+    Browser.element
+        { init = init
         , view = view
         , update = update
         , subscriptions = subscriptions
         }
 
+second = 1000
 
-init : Model -> Cmd msg -> ( Model, Cmd msg )
-init model cmd =
-    let
-        creatures =
-            [ --level 0
-              { statistics = creature Thing.Spider, level = 0, x = 16, y = 11, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Spider, level = 0, x = 15, y = 5, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Spider, level = 0, x = 29, y = 28, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Spider, level = 0, x = 23, y = 15, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Spider, level = 0, x = 30, y = 3, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Spider, level = 0, x = 8, y = 6, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Spider, level = 0, x = 26, y = 20, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Spider, level = 0, x = 17, y = 26, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Spider, level = 0, x = 21, y = 14, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Viper, level = 0, x = 3, y = 21, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Viper, level = 0, x = 2, y = 19, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Viper, level = 0, x = 21, y = 31, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Viper, level = 0, x = 24, y = 20, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Viper, level = 0, x = 11, y = 31, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Viper, level = 0, x = 30, y = 28, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Viper, level = 0, x = 20, y = 11, orientation = 0, actionCounter = 0, inventory = [ item Thing.WoodenSword 11 ] }
-            , { statistics = creature Thing.Viper, level = 0, x = 21, y = 15, orientation = 0, actionCounter = 0, inventory = [ item Thing.LeatherShield 11 ] }
-            , { statistics = creature Thing.ClubGiant, level = 0, x = 25, y = 17, orientation = 0, actionCounter = 0, inventory = [ item Thing.PineTorch 11 ] }
-            , { statistics = creature Thing.ClubGiant, level = 0, x = 5, y = 28, orientation = 0, actionCounter = 0, inventory = [ item Thing.PineTorch 12 ] }
-            , { statistics = creature Thing.ClubGiant, level = 0, x = 15, y = 19, orientation = 0, actionCounter = 0, inventory = [ item Thing.LunarTorch 11 ] }
-            , { statistics = creature Thing.ClubGiant, level = 0, x = 2, y = 0, orientation = 0, actionCounter = 0, inventory = [ item Thing.LunarTorch 12 ] }
-            , { statistics = creature Thing.Blob, level = 0, x = 3, y = 12, orientation = 0, actionCounter = 0, inventory = [ item Thing.IronSword 11 ] }
-            , { statistics = creature Thing.Blob, level = 0, x = 30, y = 20, orientation = 0, actionCounter = 0, inventory = [ item Thing.VulcanRing 11 ] }
-
-            -- level 1
-            , { statistics = creature Thing.Spider, level = 1, x = 14, y = 12, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Spider, level = 1, x = 12, y = 18, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Viper, level = 1, x = 6, y = 26, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Viper, level = 1, x = 30, y = 9, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Viper, level = 1, x = 21, y = 9, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Viper, level = 1, x = 17, y = 0, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Blob, level = 1, x = 28, y = 19, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Blob, level = 1, x = 4, y = 12, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Blob, level = 1, x = 14, y = 4, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Blob, level = 1, x = 3, y = 1, orientation = 0, actionCounter = 0, inventory = [ item Thing.WoodenSword 21 ] }
-            , { statistics = creature Thing.Blob, level = 1, x = 14, y = 29, orientation = 0, actionCounter = 0, inventory = [ item Thing.IronSword 21 ] }
-            , { statistics = creature Thing.Blob, level = 1, x = 10, y = 9, orientation = 0, actionCounter = 0, inventory = [ item Thing.LeatherShield 21 ] }
-            , { statistics = creature Thing.Knight, level = 1, x = 26, y = 15, orientation = 0, actionCounter = 0, inventory = [ item Thing.BronzeShield 21 ] }
-            , { statistics = creature Thing.Knight, level = 1, x = 7, y = 24, orientation = 0, actionCounter = 0, inventory = [ item Thing.BronzeShield 22 ] }
-            , { statistics = creature Thing.Knight, level = 1, x = 24, y = 0, orientation = 0, actionCounter = 0, inventory = [ item Thing.PineTorch 21 ] }
-            , { statistics = creature Thing.Knight, level = 1, x = 0, y = 6, orientation = 0, actionCounter = 0, inventory = [ item Thing.PineTorch 22 ] }
-            , { statistics = creature Thing.Knight, level = 1, x = 14, y = 25, orientation = 0, actionCounter = 0, inventory = [ item Thing.LunarTorch 21 ] }
-            , { statistics = creature Thing.Knight, level = 1, x = 17, y = 4, orientation = 0, actionCounter = 0, inventory = [ item Thing.LunarTorch 22 ] }
-            , { statistics = creature Thing.HatchetGiant, level = 1, x = 18, y = 4, orientation = 0, actionCounter = 0, inventory = [ item Thing.SolarTorch 21 ] }
-            , { statistics = creature Thing.HatchetGiant, level = 1, x = 19, y = 4, orientation = 0, actionCounter = 0, inventory = [ item Thing.AbyeFlask 21 ] }
-            , { statistics = creature Thing.HatchetGiant, level = 1, x = 20, y = 4, orientation = 0, actionCounter = 0, inventory = [ item Thing.AbyeFlask 22 ] }
-            , { statistics = creature Thing.HatchetGiant, level = 1, x = 21, y = 4, orientation = 0, actionCounter = 0, inventory = [ item Thing.HaleFlask 21 ] }
-            , { statistics = creature Thing.HatchetGiant, level = 1, x = 22, y = 4, orientation = 0, actionCounter = 0, inventory = [ item Thing.VisionScroll 21 ] }
-            , { statistics = creature Thing.HatchetGiant, level = 1, x = 23, y = 4, orientation = 0, actionCounter = 0, inventory = [ item Thing.RimeRing 21 ] }
-
-            -- level 2
-            , { statistics = creature Thing.Blob, level = 2, x = 1, y = 18, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Blob, level = 2, x = 2, y = 18, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Blob, level = 2, x = 3, y = 18, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Blob, level = 2, x = 4, y = 18, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.HatchetGiant, level = 2, x = 5, y = 18, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.HatchetGiant, level = 2, x = 6, y = 18, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.HatchetGiant, level = 2, x = 7, y = 18, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.HatchetGiant, level = 2, x = 8, y = 18, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.HatchetGiant, level = 2, x = 9, y = 18, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.HatchetGiant, level = 2, x = 10, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.WoodenSword 31 ] }
-            , { statistics = creature Thing.Scorpion, level = 2, x = 11, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.IronSword 31 ] }
-            , { statistics = creature Thing.Scorpion, level = 2, x = 12, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.LeatherShield 31 ] }
-            , { statistics = creature Thing.Scorpion, level = 2, x = 13, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.BronzeShield 31 ] }
-            , { statistics = creature Thing.Scorpion, level = 2, x = 14, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.BronzeShield 32 ] }
-            , { statistics = creature Thing.Scorpion, level = 2, x = 15, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.PineTorch 31 ] }
-            , { statistics = creature Thing.Scorpion, level = 2, x = 16, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.LunarTorch 31 ] }
-            , { statistics = creature Thing.Scorpion, level = 2, x = 17, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.AbyeFlask 31 ] }
-            , { statistics = creature Thing.Scorpion, level = 2, x = 18, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.AbyeFlask 31 ] }
-            , { statistics = creature Thing.ShieldKnight, level = 2, x = 19, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.ThewsFlask 31 ] }
-            , { statistics = creature Thing.ShieldKnight, level = 2, x = 20, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.SolarTorch 32 ] }
-            , { statistics = creature Thing.ShieldKnight, level = 2, x = 21, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.HaleFlask 31 ] }
-            , { statistics = creature Thing.ShieldKnight, level = 2, x = 22, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.VisionScroll 31 ] }
-            , { statistics = creature Thing.Demon, level = 2, x = 23, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.SeerScroll 31 ] }
-
-            -- level 3
-            , { statistics = creature Thing.Scorpion, level = 3, x = 0, y = 24, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Scorpion, level = 3, x = 2, y = 9, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Scorpion, level = 3, x = 2, y = 14, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Scorpion, level = 3, x = 3, y = 15, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Scorpion, level = 3, x = 4, y = 27, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Scorpion, level = 3, x = 4, y = 24, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Scorpion, level = 3, x = 4, y = 16, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Scorpion, level = 3, x = 6, y = 18, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.ShieldKnight, level = 3, x = 6, y = 9, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.ShieldKnight, level = 3, x = 8, y = 15, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.ShieldKnight, level = 3, x = 10, y = 15, orientation = 0, actionCounter = 0, inventory = [ item Thing.PineTorch 41 ] }
-            , { statistics = creature Thing.ShieldKnight, level = 3, x = 11, y = 9, orientation = 0, actionCounter = 0, inventory = [ item Thing.WoodenSword 41 ] }
-            , { statistics = creature Thing.ShieldKnight, level = 3, x = 13, y = 9, orientation = 0, actionCounter = 0, inventory = [ item Thing.IronSword 41 ] }
-            , { statistics = creature Thing.ShieldKnight, level = 3, x = 15, y = 3, orientation = 0, actionCounter = 0, inventory = [ item Thing.BronzeShield 41 ] }
-            , { statistics = creature Thing.Wraith, level = 3, x = 15, y = 13, orientation = 0, actionCounter = 0, inventory = [ item Thing.ThewsFlask 41 ] }
-            , { statistics = creature Thing.Wraith, level = 3, x = 15, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.HaleFlask 41 ] }
-            , { statistics = creature Thing.Wraith, level = 3, x = 17, y = 30, orientation = 0, actionCounter = 0, inventory = [ item Thing.LunarTorch 41 ] }
-            , { statistics = creature Thing.Wraith, level = 3, x = 19, y = 17, orientation = 0, actionCounter = 0, inventory = [ item Thing.SolarTorch 41 ] }
-            , { statistics = creature Thing.Wraith, level = 3, x = 19, y = 30, orientation = 0, actionCounter = 0, inventory = [ item Thing.AbyeFlask 41 ] }
-            , { statistics = creature Thing.Wraith, level = 3, x = 21, y = 2, orientation = 0, actionCounter = 0, inventory = [ item Thing.MithrilShield 41 ] }
-            , { statistics = creature Thing.Galdrog, level = 3, x = 21, y = 26, orientation = 0, actionCounter = 0, inventory = [ item Thing.ElvishSword 41 ] }
-            , { statistics = creature Thing.Galdrog, level = 3, x = 24, y = 26, orientation = 0, actionCounter = 0, inventory = [ item Thing.VisionScroll 41 ] }
-            , { statistics = creature Thing.Galdrog, level = 3, x = 24, y = 7, orientation = 0, actionCounter = 0, inventory = [ item Thing.SeerScroll 41 ] }
-            , { statistics = creature Thing.Galdrog, level = 3, x = 30, y = 20, orientation = 0, actionCounter = 0, inventory = [ item Thing.JouleRing 41 ] }
-
-            -- level 4
-            , { statistics = creature Thing.Spider, level = 4, x = 0, y = 21, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Spider, level = 4, x = 1, y = 11, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Viper, level = 4, x = 4, y = 10, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Viper, level = 4, x = 6, y = 31, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.ClubGiant, level = 4, x = 7, y = 5, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.ClubGiant, level = 4, x = 7, y = 14, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Blob, level = 4, x = 8, y = 27, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Blob, level = 4, x = 9, y = 31, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Knight, level = 4, x = 9, y = 0, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Knight, level = 4, x = 9, y = 20, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.HatchetGiant, level = 4, x = 9, y = 28, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.HatchetGiant, level = 4, x = 11, y = 8, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Scorpion, level = 4, x = 15, y = 0, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Scorpion, level = 4, x = 17, y = 9, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.ShieldKnight, level = 4, x = 17, y = 11, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.ShieldKnight, level = 4, x = 18, y = 0, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Wraith, level = 4, x = 20, y = 13, orientation = 0, actionCounter = 0, inventory = [] }
-            , { statistics = creature Thing.Wraith, level = 4, x = 20, y = 11, orientation = 0, actionCounter = 0, inventory = [ item Thing.PineTorch 51 ] }
-            , { statistics = creature Thing.Galdrog, level = 4, x = 21, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.BronzeShield 51 ] }
-            , { statistics = creature Thing.Galdrog, level = 4, x = 21, y = 15, orientation = 0, actionCounter = 0, inventory = [ item Thing.HaleFlask 51 ] }
-            , { statistics = creature Thing.Galdrog, level = 4, x = 22, y = 2, orientation = 0, actionCounter = 0, inventory = [ item Thing.AbyeFlask 51 ] }
-            , { statistics = creature Thing.Galdrog, level = 4, x = 23, y = 30, orientation = 0, actionCounter = 0, inventory = [ item Thing.SolarTorch 51 ] }
-            , { statistics = creature Thing.Galdrog, level = 4, x = 24, y = 7, orientation = 0, actionCounter = 0, inventory = [ item Thing.ThewsFlask 51 ] }
-            , { statistics = creature Thing.Galdrog, level = 4, x = 25, y = 11, orientation = 0, actionCounter = 0, inventory = [ item Thing.LunarTorch 51 ] }
-            , { statistics = creature Thing.Galdrog, level = 4, x = 28, y = 8, orientation = 0, actionCounter = 0, inventory = [ item Thing.MithrilShield 51 ] }
-            , { statistics = creature Thing.Galdrog, level = 4, x = 29, y = 22, orientation = 0, actionCounter = 0, inventory = [ item Thing.SeerScroll 51 ] }
-            , { statistics = creature Thing.MoonWizard, level = 4, x = 31, y = 6, orientation = 0, actionCounter = 0, inventory = [ item Thing.SupremeRing 51 ] }
-            ]
-
-        treasure =
-            []
-
-        inventory =
-            [ setRevealed (item Thing.PineTorch 1)
-            , setRevealed (item Thing.WoodenSword 2)
-            ]
-    in
-    ( updateBpm
-        (updateWeight
-            { model
-                | monsters = creatures
-                , treasure = treasure
-                , inventory = inventory
-            }
-        )
-    , cmd
-    )
+init : () -> ( Model, Cmd msg )
+init _ =
+    ( modelStart, Cmd.none )
 
 
 
@@ -209,15 +59,15 @@ init model cmd =
 
 type Msg
     = Command String
-    | Tick Time
-    | Creatures Time
+    | Tick Posix
+    | Creatures Posix
     | Submit
-    | IntroTick Time
-    | DeadTick Time
-    | FinalTick Time
-    | PrepareTick Time
-    | IntermissionTick Time
-    | Torch Time
+    | IntroTick Posix
+    | DeadTick Posix
+    | FinalTick Posix
+    | PrepareTick Posix
+    | IntermissionTick Posix
+    | Torch Posix
     | Load SerializedModel
     | LoadError String
 
@@ -277,8 +127,8 @@ subscriptions model =
     else
         Sub.batch
             [ Time.every (Basics.max ((60.0 / model.bpm) * second) (second / 60.0)) Tick
-            , Time.every (Time.second * 0.25) Creatures
-            , Time.every (Time.second * 60) Torch
+            , Time.every (second * 0.25) Creatures
+            , Time.every (second * 60) Torch
             , loadSub Load
             , errorSub LoadError
             ]
@@ -287,6 +137,13 @@ subscriptions model =
 
 -- MODEL
 
+type alias Parse =
+    { len : Int
+    , verb : String
+    , adverb : String
+    , adjective : String
+    , noun : String
+    }
 
 type alias Creature =
     { creature : Thing
@@ -375,6 +232,7 @@ type alias Model =
 
 modelStart : Model
 modelStart =
+    updateBpm (updateWeight
     { level = 0
     , x = 11
     , y = 16
@@ -394,10 +252,144 @@ modelStart =
     , history = List.repeat 3 ""
     , rightHand = [ emptyHand ]
     , leftHand = [ emptyHand ]
-    , inventory = []
+    , inventory =
+            [ setRevealed (item Thing.PineTorch 1)
+            , setRevealed (item Thing.WoodenSword 2)
+            ]
     , treasure = []
-    , monsters = []
-    }
+    , monsters =
+        [ --level 0
+          { statistics = creature Thing.Spider, level = 0, x = 16, y = 11, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Spider, level = 0, x = 15, y = 5, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Spider, level = 0, x = 29, y = 28, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Spider, level = 0, x = 23, y = 15, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Spider, level = 0, x = 30, y = 3, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Spider, level = 0, x = 8, y = 6, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Spider, level = 0, x = 26, y = 20, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Spider, level = 0, x = 17, y = 26, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Spider, level = 0, x = 21, y = 14, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Viper, level = 0, x = 3, y = 21, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Viper, level = 0, x = 2, y = 19, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Viper, level = 0, x = 21, y = 31, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Viper, level = 0, x = 24, y = 20, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Viper, level = 0, x = 11, y = 31, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Viper, level = 0, x = 30, y = 28, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Viper, level = 0, x = 20, y = 11, orientation = 0, actionCounter = 0, inventory = [ item Thing.WoodenSword 11 ] }
+        , { statistics = creature Thing.Viper, level = 0, x = 21, y = 15, orientation = 0, actionCounter = 0, inventory = [ item Thing.LeatherShield 11 ] }
+        , { statistics = creature Thing.ClubGiant, level = 0, x = 25, y = 17, orientation = 0, actionCounter = 0, inventory = [ item Thing.PineTorch 11 ] }
+        , { statistics = creature Thing.ClubGiant, level = 0, x = 5, y = 28, orientation = 0, actionCounter = 0, inventory = [ item Thing.PineTorch 12 ] }
+        , { statistics = creature Thing.ClubGiant, level = 0, x = 15, y = 19, orientation = 0, actionCounter = 0, inventory = [ item Thing.LunarTorch 11 ] }
+        , { statistics = creature Thing.ClubGiant, level = 0, x = 2, y = 0, orientation = 0, actionCounter = 0, inventory = [ item Thing.LunarTorch 12 ] }
+        , { statistics = creature Thing.Blob, level = 0, x = 3, y = 12, orientation = 0, actionCounter = 0, inventory = [ item Thing.IronSword 11 ] }
+        , { statistics = creature Thing.Blob, level = 0, x = 30, y = 20, orientation = 0, actionCounter = 0, inventory = [ item Thing.VulcanRing 11 ] }
+
+        -- level 1
+        , { statistics = creature Thing.Spider, level = 1, x = 14, y = 12, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Spider, level = 1, x = 12, y = 18, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Viper, level = 1, x = 6, y = 26, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Viper, level = 1, x = 30, y = 9, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Viper, level = 1, x = 21, y = 9, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Viper, level = 1, x = 17, y = 0, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Blob, level = 1, x = 28, y = 19, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Blob, level = 1, x = 4, y = 12, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Blob, level = 1, x = 14, y = 4, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Blob, level = 1, x = 3, y = 1, orientation = 0, actionCounter = 0, inventory = [ item Thing.WoodenSword 21 ] }
+        , { statistics = creature Thing.Blob, level = 1, x = 14, y = 29, orientation = 0, actionCounter = 0, inventory = [ item Thing.IronSword 21 ] }
+        , { statistics = creature Thing.Blob, level = 1, x = 10, y = 9, orientation = 0, actionCounter = 0, inventory = [ item Thing.LeatherShield 21 ] }
+        , { statistics = creature Thing.Knight, level = 1, x = 26, y = 15, orientation = 0, actionCounter = 0, inventory = [ item Thing.BronzeShield 21 ] }
+        , { statistics = creature Thing.Knight, level = 1, x = 7, y = 24, orientation = 0, actionCounter = 0, inventory = [ item Thing.BronzeShield 22 ] }
+        , { statistics = creature Thing.Knight, level = 1, x = 24, y = 0, orientation = 0, actionCounter = 0, inventory = [ item Thing.PineTorch 21 ] }
+        , { statistics = creature Thing.Knight, level = 1, x = 0, y = 6, orientation = 0, actionCounter = 0, inventory = [ item Thing.PineTorch 22 ] }
+        , { statistics = creature Thing.Knight, level = 1, x = 14, y = 25, orientation = 0, actionCounter = 0, inventory = [ item Thing.LunarTorch 21 ] }
+        , { statistics = creature Thing.Knight, level = 1, x = 17, y = 4, orientation = 0, actionCounter = 0, inventory = [ item Thing.LunarTorch 22 ] }
+        , { statistics = creature Thing.HatchetGiant, level = 1, x = 18, y = 4, orientation = 0, actionCounter = 0, inventory = [ item Thing.SolarTorch 21 ] }
+        , { statistics = creature Thing.HatchetGiant, level = 1, x = 19, y = 4, orientation = 0, actionCounter = 0, inventory = [ item Thing.AbyeFlask 21 ] }
+        , { statistics = creature Thing.HatchetGiant, level = 1, x = 20, y = 4, orientation = 0, actionCounter = 0, inventory = [ item Thing.AbyeFlask 22 ] }
+        , { statistics = creature Thing.HatchetGiant, level = 1, x = 21, y = 4, orientation = 0, actionCounter = 0, inventory = [ item Thing.HaleFlask 21 ] }
+        , { statistics = creature Thing.HatchetGiant, level = 1, x = 22, y = 4, orientation = 0, actionCounter = 0, inventory = [ item Thing.VisionScroll 21 ] }
+        , { statistics = creature Thing.HatchetGiant, level = 1, x = 23, y = 4, orientation = 0, actionCounter = 0, inventory = [ item Thing.RimeRing 21 ] }
+
+        -- level 2
+        , { statistics = creature Thing.Blob, level = 2, x = 1, y = 18, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Blob, level = 2, x = 2, y = 18, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Blob, level = 2, x = 3, y = 18, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Blob, level = 2, x = 4, y = 18, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.HatchetGiant, level = 2, x = 5, y = 18, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.HatchetGiant, level = 2, x = 6, y = 18, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.HatchetGiant, level = 2, x = 7, y = 18, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.HatchetGiant, level = 2, x = 8, y = 18, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.HatchetGiant, level = 2, x = 9, y = 18, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.HatchetGiant, level = 2, x = 10, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.WoodenSword 31 ] }
+        , { statistics = creature Thing.Scorpion, level = 2, x = 11, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.IronSword 31 ] }
+        , { statistics = creature Thing.Scorpion, level = 2, x = 12, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.LeatherShield 31 ] }
+        , { statistics = creature Thing.Scorpion, level = 2, x = 13, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.BronzeShield 31 ] }
+        , { statistics = creature Thing.Scorpion, level = 2, x = 14, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.BronzeShield 32 ] }
+        , { statistics = creature Thing.Scorpion, level = 2, x = 15, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.PineTorch 31 ] }
+        , { statistics = creature Thing.Scorpion, level = 2, x = 16, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.LunarTorch 31 ] }
+        , { statistics = creature Thing.Scorpion, level = 2, x = 17, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.AbyeFlask 31 ] }
+        , { statistics = creature Thing.Scorpion, level = 2, x = 18, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.AbyeFlask 31 ] }
+        , { statistics = creature Thing.ShieldKnight, level = 2, x = 19, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.ThewsFlask 31 ] }
+        , { statistics = creature Thing.ShieldKnight, level = 2, x = 20, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.SolarTorch 32 ] }
+        , { statistics = creature Thing.ShieldKnight, level = 2, x = 21, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.HaleFlask 31 ] }
+        , { statistics = creature Thing.ShieldKnight, level = 2, x = 22, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.VisionScroll 31 ] }
+        , { statistics = creature Thing.Demon, level = 2, x = 23, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.SeerScroll 31 ] }
+
+        -- level 3
+        , { statistics = creature Thing.Scorpion, level = 3, x = 0, y = 24, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Scorpion, level = 3, x = 2, y = 9, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Scorpion, level = 3, x = 2, y = 14, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Scorpion, level = 3, x = 3, y = 15, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Scorpion, level = 3, x = 4, y = 27, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Scorpion, level = 3, x = 4, y = 24, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Scorpion, level = 3, x = 4, y = 16, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Scorpion, level = 3, x = 6, y = 18, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.ShieldKnight, level = 3, x = 6, y = 9, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.ShieldKnight, level = 3, x = 8, y = 15, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.ShieldKnight, level = 3, x = 10, y = 15, orientation = 0, actionCounter = 0, inventory = [ item Thing.PineTorch 41 ] }
+        , { statistics = creature Thing.ShieldKnight, level = 3, x = 11, y = 9, orientation = 0, actionCounter = 0, inventory = [ item Thing.WoodenSword 41 ] }
+        , { statistics = creature Thing.ShieldKnight, level = 3, x = 13, y = 9, orientation = 0, actionCounter = 0, inventory = [ item Thing.IronSword 41 ] }
+        , { statistics = creature Thing.ShieldKnight, level = 3, x = 15, y = 3, orientation = 0, actionCounter = 0, inventory = [ item Thing.BronzeShield 41 ] }
+        , { statistics = creature Thing.Wraith, level = 3, x = 15, y = 13, orientation = 0, actionCounter = 0, inventory = [ item Thing.ThewsFlask 41 ] }
+        , { statistics = creature Thing.Wraith, level = 3, x = 15, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.HaleFlask 41 ] }
+        , { statistics = creature Thing.Wraith, level = 3, x = 17, y = 30, orientation = 0, actionCounter = 0, inventory = [ item Thing.LunarTorch 41 ] }
+        , { statistics = creature Thing.Wraith, level = 3, x = 19, y = 17, orientation = 0, actionCounter = 0, inventory = [ item Thing.SolarTorch 41 ] }
+        , { statistics = creature Thing.Wraith, level = 3, x = 19, y = 30, orientation = 0, actionCounter = 0, inventory = [ item Thing.AbyeFlask 41 ] }
+        , { statistics = creature Thing.Wraith, level = 3, x = 21, y = 2, orientation = 0, actionCounter = 0, inventory = [ item Thing.MithrilShield 41 ] }
+        , { statistics = creature Thing.Galdrog, level = 3, x = 21, y = 26, orientation = 0, actionCounter = 0, inventory = [ item Thing.ElvishSword 41 ] }
+        , { statistics = creature Thing.Galdrog, level = 3, x = 24, y = 26, orientation = 0, actionCounter = 0, inventory = [ item Thing.VisionScroll 41 ] }
+        , { statistics = creature Thing.Galdrog, level = 3, x = 24, y = 7, orientation = 0, actionCounter = 0, inventory = [ item Thing.SeerScroll 41 ] }
+        , { statistics = creature Thing.Galdrog, level = 3, x = 30, y = 20, orientation = 0, actionCounter = 0, inventory = [ item Thing.JouleRing 41 ] }
+
+        -- level 4
+        , { statistics = creature Thing.Spider, level = 4, x = 0, y = 21, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Spider, level = 4, x = 1, y = 11, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Viper, level = 4, x = 4, y = 10, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Viper, level = 4, x = 6, y = 31, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.ClubGiant, level = 4, x = 7, y = 5, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.ClubGiant, level = 4, x = 7, y = 14, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Blob, level = 4, x = 8, y = 27, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Blob, level = 4, x = 9, y = 31, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Knight, level = 4, x = 9, y = 0, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Knight, level = 4, x = 9, y = 20, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.HatchetGiant, level = 4, x = 9, y = 28, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.HatchetGiant, level = 4, x = 11, y = 8, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Scorpion, level = 4, x = 15, y = 0, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Scorpion, level = 4, x = 17, y = 9, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.ShieldKnight, level = 4, x = 17, y = 11, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.ShieldKnight, level = 4, x = 18, y = 0, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Wraith, level = 4, x = 20, y = 13, orientation = 0, actionCounter = 0, inventory = [] }
+        , { statistics = creature Thing.Wraith, level = 4, x = 20, y = 11, orientation = 0, actionCounter = 0, inventory = [ item Thing.PineTorch 51 ] }
+        , { statistics = creature Thing.Galdrog, level = 4, x = 21, y = 18, orientation = 0, actionCounter = 0, inventory = [ item Thing.BronzeShield 51 ] }
+        , { statistics = creature Thing.Galdrog, level = 4, x = 21, y = 15, orientation = 0, actionCounter = 0, inventory = [ item Thing.HaleFlask 51 ] }
+        , { statistics = creature Thing.Galdrog, level = 4, x = 22, y = 2, orientation = 0, actionCounter = 0, inventory = [ item Thing.AbyeFlask 51 ] }
+        , { statistics = creature Thing.Galdrog, level = 4, x = 23, y = 30, orientation = 0, actionCounter = 0, inventory = [ item Thing.SolarTorch 51 ] }
+        , { statistics = creature Thing.Galdrog, level = 4, x = 24, y = 7, orientation = 0, actionCounter = 0, inventory = [ item Thing.ThewsFlask 51 ] }
+        , { statistics = creature Thing.Galdrog, level = 4, x = 25, y = 11, orientation = 0, actionCounter = 0, inventory = [ item Thing.LunarTorch 51 ] }
+        , { statistics = creature Thing.Galdrog, level = 4, x = 28, y = 8, orientation = 0, actionCounter = 0, inventory = [ item Thing.MithrilShield 51 ] }
+        , { statistics = creature Thing.Galdrog, level = 4, x = 29, y = 22, orientation = 0, actionCounter = 0, inventory = [ item Thing.SeerScroll 51 ] }
+        , { statistics = creature Thing.MoonWizard, level = 4, x = 31, y = 6, orientation = 0, actionCounter = 0, inventory = [ item Thing.SupremeRing 51 ] }
+        ]
+    })
 
 
 setRevealed x =
@@ -479,16 +471,16 @@ isFainted model =
     1200 <= model.bpm
 
 
-isTimeToMove creature =
-    creature.statistics.moveRate < creature.actionCounter
+isTimeToMove lcreature =
+    lcreature.statistics.moveRate < lcreature.actionCounter
 
 
-isTimeToAttack creature =
-    creature.statistics.attackRate < creature.actionCounter
+isTimeToAttack lcreature =
+    lcreature.statistics.attackRate < lcreature.actionCounter
 
 
-isDeadCreature creature =
-    creature.statistics.power <= creature.statistics.damage
+isDeadCreature lcreature =
+    lcreature.statistics.power <= lcreature.statistics.damage
 
 
 equalPosition : Position a -> Position b -> Bool
@@ -498,7 +490,7 @@ equalPosition a b =
 
 cwTurn : Int -> Int -> Int
 cwTurn orient rightTurns =
-    (orient + rightTurns) % 4
+    modBy 4 (orient + rightTurns)
 
 
 updateWeight model =
@@ -555,11 +547,17 @@ uniqPrefixMatch : List String -> String -> String
 uniqPrefixMatch xs x =
     -- single match by prefix, or original input
     let
-        ciMatch regex =
-            Regex.contains (Regex.caseInsensitive (Regex.regex regex))
+        options = { caseInsensitive = True, multiline = False }
+
+        maybeRegex s = Regex.fromStringWith options s
+
+        regex s = Maybe.withDefault Regex.never (maybeRegex s)
+
+        ciMatch r =
+            Regex.contains (regex r)
 
         matches =
-            List.filter (ciMatch ("^" ++ Regex.escape x)) xs
+            List.filter (ciMatch ("^" ++ x)) xs
     in
     case matches of
         [ a ] ->
@@ -569,7 +567,7 @@ uniqPrefixMatch xs x =
             x
 
 
-lex : String -> ( Int, String, String, String, String )
+lex : String -> Parse
 lex input =
     let
         words =
@@ -583,19 +581,19 @@ lex input =
     in
     case Array.length words of
         1 ->
-            ( 1, find vocab_verb 0, "", "", "" )
+            Parse 1 (find vocab_verb 0) "" "" ""
 
         2 ->
-            ( 2, find vocab_verb 0, find vocab_adverb 1, "", "" )
+            Parse 2 (find vocab_verb 0) (find vocab_adverb 1) "" ""
 
         3 ->
-            ( 3, find vocab_verb 0, find vocab_adverb 1, "", find vocab_noun 2 )
+            Parse 3 (find vocab_verb 0) (find vocab_adverb 1) "" (find vocab_noun 2)
 
         4 ->
-            ( 4, find vocab_verb 0, find vocab_adverb 1, find vocab_adjective 2, find vocab_noun 3 )
+            Parse 4 (find vocab_verb 0) (find vocab_adverb 1) (find vocab_adjective 2) (find vocab_noun 3)
 
         _ ->
-            ( Array.length words, "", "", "", "" )
+            Parse (Array.length words) "" "" "" ""
 
 
 v_climb : Int -> String -> Model -> ( Model, Cmd msg )
@@ -664,15 +662,15 @@ v_incant len adverb model =
                 _ ->
                     model
 
-        endGame model =
+        endGame lmodel =
             let
-                final =
-                    List.filter (\e -> e.adj == "Final") (List.concat [ model.leftHand, model.rightHand ])
+                lfinal =
+                    List.filter (\e -> e.adj == "Final") (List.concat [ lmodel.leftHand, lmodel.rightHand ])
             in
-            if List.isEmpty final then
-                model
+            if List.isEmpty lfinal then
+                lmodel
             else
-                { model | display = "final", frame = 0 }
+                { lmodel | display = "final", frame = 0 }
 
         final =
             endGame action
@@ -694,53 +692,53 @@ v_look len adverbs model =
             ( { model | good = False }, Cmd.none )
 
 
-eval : ( Int, String, String, String, String ) -> Model -> ( Model, Cmd msg )
-eval ( len, verbs, adverbs, adjectives, nouns ) model =
-    case verbs of
+eval : Parse -> Model -> ( Model, Cmd msg )
+eval p model =
+    case p.verb of
         "Attack" ->
-            v_attack len adverbs model
+            v_attack p.len p.adverb model
 
         "Climb" ->
-            v_climb len adverbs model
+            v_climb p.len p.adverb model
 
         "Drop" ->
-            v_drop len adverbs model
+            v_drop p.len p.adverb model
 
         "Examine" ->
-            v_examine len model
+            v_examine p.len model
 
         "Get" ->
-            v_get len adverbs adjectives nouns model
+            v_get p.len p.adverb p.adjective p.noun model
 
         "Incant" ->
-            v_incant len adverbs model
+            v_incant p.len p.adverb model
 
         "Look" ->
-            v_look len adverbs model
+            v_look p.len p.adverb model
 
         "Move" ->
-            v_move len adverbs model
+            v_move p.len p.adverb model
 
         "Pull" ->
-            v_pull len adverbs adjectives nouns model
+            v_pull p.len p.adverb p.adjective p.noun model
 
         "Reveal" ->
-            v_reveal len adverbs model
+            v_reveal p.len p.adverb model
 
         "Stow" ->
-            v_stow len adverbs model
+            v_stow p.len p.adverb model
 
         "Turn" ->
-            v_turn len adverbs model
+            v_turn p.len p.adverb model
 
         "Use" ->
-            v_use len adverbs adjectives nouns model
+            v_use p.len p.adverb p.adjective p.noun model
 
         "Zsave" ->
-            v_zsave len adverbs adjectives nouns model
+            v_zsave p.len p.adverb p.adjective p.noun model
 
         "Zload" ->
-            v_zload len adverbs adjectives nouns model
+            v_zload p.len p.adverb p.adjective p.noun model
 
         _ ->
             ( { model | good = False }, Cmd.none )
@@ -755,11 +753,11 @@ useTorch len adverbs adjectives nouns model =
         object =
             source.get model
 
-        remove object model =
-            source.set model emptyHand
+        remove lobject lmodel =
+            source.set lmodel emptyHand
 
-        insert object model =
-            { model
+        insert lobject lmodel =
+            { lmodel
                 | inventory =
                     List.append
                         (List.map
@@ -769,13 +767,13 @@ useTorch len adverbs adjectives nouns model =
                                 else
                                     e
                             )
-                            model.inventory
+                            lmodel.inventory
                         )
-                        [ object ]
+                        [ lobject ]
             }
 
-        action model =
-            moveItem { object | flag = True } remove insert model
+        action lmodel =
+            moveItem { object | flag = True } remove insert lmodel
     in
     ( action model, playSound { url = sound Thing.Torch, volume = 1.0 } )
 
@@ -995,52 +993,52 @@ v_use len adverbs adjectives nouns model =
         obj =
             target.get model
 
-        action nouns model =
-            case (target.get model).noun of
+        action lnouns lmodel =
+            case (target.get lmodel).noun of
                 "Torch" ->
                     case obj.adj of
                         "Dead" ->
-                            useTorch len adverbs adjectives nouns model
+                            useTorch len adverbs adjectives lnouns lmodel
 
                         "Pine" ->
-                            useTorch len adverbs adjectives nouns model
+                            useTorch len adverbs adjectives lnouns lmodel
 
                         "Lunar" ->
-                            useTorch len adverbs adjectives nouns model
+                            useTorch len adverbs adjectives lnouns lmodel
 
                         "Solar" ->
-                            useTorch len adverbs adjectives nouns model
+                            useTorch len adverbs adjectives lnouns lmodel
 
                         _ ->
-                            ( model, Cmd.none )
+                            ( lmodel, Cmd.none )
 
                 "Scroll" ->
                     case obj.adj of
                         "Vision" ->
-                            useScroll obj model
+                            useScroll obj lmodel
 
                         "Seer" ->
-                            useScroll obj model
+                            useScroll obj lmodel
 
                         _ ->
-                            ( model, Cmd.none )
+                            ( lmodel, Cmd.none )
 
                 "Flask" ->
                     case obj.adj of
                         "Abye" ->
-                            useFlask adverbs model
+                            useFlask adverbs lmodel
 
                         "Hale" ->
-                            useFlask adverbs model
+                            useFlask adverbs lmodel
 
                         "Thews" ->
-                            useFlask adverbs model
+                            useFlask adverbs lmodel
 
                         _ ->
-                            ( model, Cmd.none )
+                            ( lmodel, Cmd.none )
 
                 _ ->
-                    ( { model | good = False }, Cmd.none )
+                    ( { lmodel | good = False }, Cmd.none )
     in
     case ( len, adverbs ) of
         ( 2, "Left" ) ->
@@ -1065,8 +1063,8 @@ v_reveal len adverbs model =
             else
                 x
 
-        action model =
-            ( target.set model (reveal (target.get model))
+        action lmodel =
+            ( target.set lmodel (reveal (target.get lmodel))
             , Cmd.none
             )
     in
@@ -1090,14 +1088,14 @@ v_drop len adverbs model =
         obj =
             source.get model
 
-        remove object model =
-            updateWeight (source.set model emptyHand)
+        remove object lmodel =
+            updateWeight (source.set lmodel emptyHand)
 
-        insert object model =
-            { model | treasure = { level = model.level, x = model.x, y = model.y, object = object } :: model.treasure }
+        insert object lmodel =
+            { lmodel | treasure = { level = lmodel.level, x = lmodel.x, y = lmodel.y, object = object } :: lmodel.treasure }
 
-        action model =
-            moveItem obj remove insert model
+        action lmodel =
+            moveItem obj remove insert lmodel
     in
     case ( len, adverbs ) of
         ( 2, "Right" ) ->
@@ -1125,14 +1123,14 @@ v_stow len adverbs model =
         obj =
             source.get model
 
-        remove object model =
-            source.set model emptyHand
+        remove object lmodel =
+            source.set lmodel emptyHand
 
-        insert object model =
-            { model | inventory = object :: model.inventory }
+        insert object lmodel =
+            { lmodel | inventory = object :: lmodel.inventory }
 
-        action model =
-            moveItem obj remove insert model
+        action lmodel =
+            moveItem obj remove insert lmodel
     in
     case ( len, adverbs ) of
         ( 2, "Right" ) ->
@@ -1178,17 +1176,17 @@ v_get len adverbs adjectives nouns model =
         handFull =
             target.get model /= emptyHand
 
-        remove object model =
-            { model | treasure = List.filter ((/=) object) model.treasure }
+        remove lobject lmodel =
+            { lmodel | treasure = List.filter ((/=) lobject) lmodel.treasure }
 
-        insert object model =
-            updateWeight (target.set model object.object)
+        insert lobject lmodel =
+            updateWeight (target.set lmodel lobject.object)
 
-        match adj noun model obj =
-            obj.object.noun == noun && equalPosition obj model && (adj == "" || (obj.object.adj == adj && obj.object.revealed))
+        match adj noun lmodel obj =
+            obj.object.noun == noun && equalPosition obj lmodel && (adj == "" || (obj.object.adj == adj && obj.object.revealed))
 
-        action model =
-            moveItem object remove insert model
+        action lmodel =
+            moveItem object remove insert lmodel
 
         exec =
             if handFull then
@@ -1196,17 +1194,17 @@ v_get len adverbs adjectives nouns model =
             else
                 ( action { model | good = True }, Cmd.none )
     in
-    case ( len, adverbs, adjectives, nouns ) of
-        ( 3, "Left", "", _ ) ->
+    case ( len, adverbs, adjectives ) of
+        ( 3, "Left", "" ) ->
             exec
 
-        ( 4, "Left", _, _ ) ->
+        ( 4, "Left", _ ) ->
             exec
 
-        ( 3, "Right", "", _ ) ->
+        ( 3, "Right", "" ) ->
             exec
 
-        ( 4, "Right", _, _ ) ->
+        ( 4, "Right", _ ) ->
             exec
 
         _ ->
@@ -1222,22 +1220,22 @@ v_pull len adverbs adjectives nouns model =
         handFull =
             target.get model /= emptyHand
 
-        remove object model =
-            { model | inventory = List.filter ((/=) object) model.inventory }
+        remove lobject lmodel =
+            { lmodel | inventory = List.filter ((/=) lobject) lmodel.inventory }
 
-        insert object model =
-            target.set model
+        insert lobject lmodel =
+            target.set lmodel
                 (if isLitTorch object then
-                    { object | flag = False }
+                    { lobject | flag = False }
                  else
-                    object
+                    lobject
                 )
 
-        match adj noun model obj =
+        match adj noun lmodel obj =
             obj.noun == noun && (adj == "" || (obj.adj == adj && obj.revealed))
 
-        action model =
-            moveItem object remove insert model
+        action lmodel =
+            moveItem object remove insert lmodel
 
         object =
             Maybe.withDefault emptyHand (findFirst (match adjectives nouns model) model.inventory)
@@ -1248,17 +1246,17 @@ v_pull len adverbs adjectives nouns model =
             else
                 ( action { model | good = True }, Cmd.none )
     in
-    case ( len, adverbs, adjectives, nouns ) of
-        ( 3, "Left", "", _ ) ->
+    case ( len, adverbs, adjectives ) of
+        ( 3, "Left", "" ) ->
             exec
 
-        ( 4, "Left", _, _ ) ->
+        ( 4, "Left", _ ) ->
             exec
 
-        ( 3, "Right", "", _ ) ->
+        ( 3, "Right", "" ) ->
             exec
 
-        ( 4, "Right", _, _ ) ->
+        ( 4, "Right", _ ) ->
             exec
 
         _ ->
@@ -1350,13 +1348,13 @@ v_attack len adverbs model =
                 (consumeRingCharge weapon)
     in
     case monster of
-        [ m ] ->
+        [ mon ] ->
             if isDeadCreature damagedCreature then
                 ( gotoLevelFour
                     { model2
                         | monsters = List.filter (\e -> not (equalPosition model e)) model.monsters
-                        , treasure = List.append model.treasure (List.map (\e -> { level = model.level, x = model.x, y = model.y, object = e }) m.inventory)
-                        , power = model.power + 1 / 8 * m.statistics.power
+                        , treasure = List.append model.treasure (List.map (\e -> { level = model.level, x = model.x, y = model.y, object = e }) mon.inventory)
+                        , power = model.power + 1 / 8 * mon.statistics.power
                     }
                     damagedCreature
                 , Cmd.batch [ playSound { url = sound weapon.class, volume = 1.0 }, playSound { url = sound PlayerHitCreature, volume = 1.0 }, playSound { url = sound CreatureDied, volume = 1.0 } ]
@@ -1370,12 +1368,12 @@ v_attack len adverbs model =
             ( { model2 | response = "" }, playSound { url = sound weapon.class, volume = 1.0 } )
 
 
-gotoLevelFour model creature =
+gotoLevelFour model lcreature =
     let
         emptyInventory inventory =
             List.filter isLitTorch inventory
     in
-    if creature.statistics.creature /= Thing.Demon then
+    if lcreature.statistics.creature /= Thing.Demon then
         model
     else
         { model
@@ -1413,22 +1411,22 @@ randomHit model defenderPower defenderDamage attackerPower =
 
 
 creatureAttacks : DungeonCreature -> ( Model, Cmd msg ) -> ( Model, Cmd msg )
-creatureAttacks creature ( model, cmd ) =
+creatureAttacks lcreature ( model, cmd ) =
     let
         ( model1, isHit ) =
-            randomHit model model.power model.damage creature.statistics.power
+            randomHit model model.power model.damage lcreature.statistics.power
 
         damage =
             if isHit then
-                calcDamage creature.statistics.power creature.statistics.magic (calcDefence model).resistance creature.statistics.attack (calcDefence model).defence
+                calcDamage lcreature.statistics.power lcreature.statistics.magic (calcDefence model).resistance lcreature.statistics.attack (calcDefence model).defence
             else
                 0
 
         monsters =
-            creature :: List.filter (\e -> not (equalPosition creature e)) model.monsters
+            lcreature :: List.filter (\e -> not (equalPosition lcreature e)) model.monsters
 
         snd =
-            Cmd.batch [ cmd, playSound { url = sound creature.statistics.creature, volume = 1.0 } ]
+            Cmd.batch [ cmd, playSound { url = sound lcreature.statistics.creature, volume = 1.0 } ]
     in
     ( { model | seed = model1.seed, monsters = monsters, damage = model.damage + damage }, snd )
 
@@ -1519,15 +1517,15 @@ v_turn len adverbs model =
 parse : Model -> ( Model, Cmd msg )
 parse model =
     let
-        ( len, verb, adverb, adjective, noun ) =
+        p =
             lex model.input
 
         ( modelp, cmd ) =
-            eval ( len, verb, adverb, adjective, noun ) model
+            eval p model
 
         interpretation =
             if modelp.good then
-                long verb adverb adjective noun ++ modelp.response
+                long p.verb p.adverb p.adjective p.noun ++ modelp.response
             else
                 modelp.input ++ " ???"
     in
@@ -1633,7 +1631,7 @@ update msg model =
         IntroTick newTime ->
             if model.frame < 16 then
                 ( { model | frame = model.frame + 1 }
-                , if (model.frame % 4) == 0 then
+                , if (modBy 4 model.frame) == 0 then
                     playSound { url = sound WizardFadeBuzz, volume = toFloat model.frame / 15.0 }
                   else
                     Cmd.none
@@ -1646,7 +1644,7 @@ update msg model =
                 ( { model | frame = model.frame + 1 }, playSound { url = sound WizardFadeCrash, volume = 1.0 } )
             else if model.frame < 48 then
                 ( { model | frame = model.frame + 1 }
-                , if (model.frame % 4) == 0 then
+                , if (modBy 4 model.frame) == 0 then
                     playSound { url = sound WizardFadeBuzz, volume = 1.0 - (toFloat (model.frame - 33) / 15.0) }
                   else
                     Cmd.none
@@ -1657,7 +1655,7 @@ update msg model =
         DeadTick newTime ->
             if model.frame < 16 then
                 ( { model | frame = model.frame + 1 }
-                , if (model.frame % 4) == 0 then
+                , if (modBy 4 model.frame) == 0 then
                     playSound { url = sound WizardFadeBuzz, volume = toFloat model.frame / 15.0 }
                   else
                     Cmd.none
@@ -1667,12 +1665,12 @@ update msg model =
             else if model.frame < 32 then
                 ( { model | frame = model.frame + 1 }, Cmd.none )
             else
-                init { modelStart | display = "dungeon", frame = 0 } Cmd.none
+                ( { modelStart | display = "dungeon" }, Cmd.none )
 
         FinalTick newTime ->
             if model.frame < 16 then
                 ( { model | frame = model.frame + 1 }
-                , if (model.frame % 4) == 0 then
+                , if (modBy 4 model.frame) == 0 then
                     playSound { url = sound WizardFadeBuzz, volume = toFloat model.frame / 15.0 }
                   else
                     Cmd.none
@@ -1686,7 +1684,7 @@ update msg model =
         IntermissionTick newTime ->
             if model.frame < 16 then
                 ( { model | frame = model.frame + 1 }
-                , if (model.frame % 4) == 0 then
+                , if (modBy 4 model.frame) == 0 then
                     playSound { url = sound WizardFadeBuzz, volume = toFloat model.frame / 15.0 }
                   else
                     Cmd.none
@@ -1699,7 +1697,7 @@ update msg model =
                 ( { model | frame = model.frame + 1 }, playSound { url = sound WizardFadeCrash, volume = 1.0 } )
             else if model.frame < 48 then
                 ( { model | frame = model.frame + 1 }
-                , if (model.frame % 4) == 0 then
+                , if (modBy 4 model.frame) == 0 then
                     playSound { url = sound WizardFadeBuzz, volume = 1.0 - (toFloat (model.frame - 33) / 15.0) }
                   else
                     Cmd.none
@@ -1718,37 +1716,37 @@ solid =
     }
 
 
-sndCreature ( model, cmd ) creature =
+sndCreature ( model, cmd ) lcreature =
     let
         ( randomNoise, seed1 ) =
             Random.step (Random.int 0 1) model.seed
 
         ( dx, dy ) =
-            ( abs (model.x - creature.x), abs (model.y - creature.y) )
+            ( abs (model.x - lcreature.x), abs (model.y - lcreature.y) )
 
-        distance =
+        cdistance =
             if (dx < 9 && dy < 9) && not (2 < dx && 2 < dy) then
                 Basics.max dx dy
             else
                 9
 
         vol =
-            (9.0 - toFloat distance) / 9.0
+            (9.0 - toFloat cdistance) / 9.0
     in
-    if model.level == creature.level && distance < 9 && randomNoise == 1 then
-        ( { model | seed = seed1 }, Cmd.batch [ cmd, playSound { url = sound creature.statistics.creature, volume = vol } ] )
+    if model.level == lcreature.level && cdistance < 9 && randomNoise == 1 then
+        ( { model | seed = seed1 }, Cmd.batch [ cmd, playSound { url = sound lcreature.statistics.creature, volume = vol } ] )
     else
         ( { model | seed = seed1 }, cmd )
 
 
 moveCreature : DungeonCreature -> ( Model, Cmd msg ) -> ( Model, Cmd msg )
-moveCreature creature ( model, cmd ) =
+moveCreature lcreature ( model, cmd ) =
     let
         relRoomCalc x y orientation =
-            absRoom2relRoom (Maze.getRoom creature.level x y) orientation
+            absRoom2relRoom (Maze.getRoom lcreature.level x y) orientation
 
         relRoom =
-            relRoomCalc creature.x creature.y creature.orientation
+            relRoomCalc lcreature.x lcreature.y lcreature.orientation
 
         choices =
             List.filter (\e -> e.wall /= Maze.Solid)
@@ -1765,31 +1763,31 @@ moveCreature creature ( model, cmd ) =
             else if (relRoomCalc x y orientation).front == Maze.Solid then
                 False
             else
-                seek (step creature.level x y orientation) orientation seeSomething
+                seek (step lcreature.level x y orientation) orientation seeSomething
 
         findMonster turn =
             let
                 ( mx, my ) =
-                    step creature.level creature.x creature.y (cwTurn creature.orientation turn)
+                    step lcreature.level lcreature.x lcreature.y (cwTurn lcreature.orientation turn)
             in
-            thereIsAThing ( creature.level, mx, my ) model.monsters
+            thereIsAThing ( lcreature.level, mx, my ) model.monsters
 
         findPlayer turn =
-            seek ( creature.x, creature.y )
-                (cwTurn creature.orientation turn)
-                (\( x, y ) -> ( creature.level, x, y ) == ( model.level, model.x, model.y ))
+            seek ( lcreature.x, lcreature.y )
+                (cwTurn lcreature.orientation turn)
+                (\( x, y ) -> ( lcreature.level, x, y ) == ( model.level, model.x, model.y ))
 
         findTreasure turn =
-            seek ( creature.x, creature.y )
-                (cwTurn creature.orientation turn)
-                (\( x, y ) -> thereIsAThing ( creature.level, x, y ) model.treasure)
+            seek ( lcreature.x, lcreature.y )
+                (cwTurn lcreature.orientation turn)
+                (\( x, y ) -> thereIsAThing ( lcreature.level, x, y ) model.treasure)
 
-        randomChoice choices =
+        randomChoice lchoices =
             let
-                ( rnd, seed1 ) =
-                    Random.step (Random.int 0 (List.length choices - 1)) model.seed
+                ( rnd, lseed1 ) =
+                    Random.step (Random.int 0 (List.length lchoices - 1)) model.seed
             in
-            ( (Maybe.withDefault { wall = Maze.Open, turn = 2 } (Array.get rnd (Array.fromList choices))).turn, seed1 )
+            ( (Maybe.withDefault { wall = Maze.Open, turn = 2 } (Array.get rnd (Array.fromList lchoices))).turn, lseed1 )
 
         ( direction, seed1 ) =
             let
@@ -1815,52 +1813,52 @@ moveCreature creature ( model, cmd ) =
                     )
 
         ( nx, ny ) =
-            step creature.level creature.x creature.y (cwTurn creature.orientation direction)
+            step lcreature.level lcreature.x lcreature.y (cwTurn lcreature.orientation direction)
 
         ( xx, yy ) =
-            if List.isEmpty (matchPosition ( creature.level, nx, ny ) model.monsters) then
+            if List.isEmpty (matchPosition ( lcreature.level, nx, ny ) model.monsters) then
                 ( nx, ny )
             else
-                ( creature.x, creature.y )
+                ( lcreature.x, lcreature.y )
 
         ncreature =
-            { creature | x = xx, y = yy, orientation = cwTurn creature.orientation direction }
+            { lcreature | x = xx, y = yy, orientation = cwTurn lcreature.orientation direction }
 
         monsters =
-            ncreature :: List.filter (\e -> not (equalPosition creature e)) model.monsters
+            ncreature :: List.filter (\e -> not (equalPosition lcreature e)) model.monsters
     in
     sndCreature ( { model | seed = seed1, monsters = monsters }, cmd ) ncreature
 
 
 treasureCreature : DungeonCreature -> ( Model, Cmd msg ) -> ( Model, Cmd msg )
-treasureCreature creature ( model, cmd ) =
+treasureCreature lcreature ( model, cmd ) =
     let
         treasure =
-            findFirst (equalPosition creature) model.treasure
+            findFirst (equalPosition lcreature) model.treasure
 
         treasure1 =
             List.filter ((/=) (Maybe.withDefault { level = 0, x = 0, y = 0, object = emptyHand } treasure)) model.treasure
 
         ncreature =
-            { creature | inventory = (Maybe.withDefault { level = 0, x = 0, y = 0, object = emptyHand } treasure).object :: creature.inventory }
+            { lcreature | inventory = (Maybe.withDefault { level = 0, x = 0, y = 0, object = emptyHand } treasure).object :: lcreature.inventory }
 
         monsters =
-            ncreature :: List.filter (\e -> not (equalPosition creature e)) model.monsters
+            ncreature :: List.filter (\e -> not (equalPosition lcreature e)) model.monsters
     in
     ( { model | treasure = treasure1, monsters = monsters }, cmd )
 
 
 updateCreature : DungeonCreature -> ( Model, Cmd msg ) -> ( Model, Cmd msg )
-updateCreature creature ( model, cmd ) =
+updateCreature lcreature ( model, cmd ) =
     let
         treasure =
-            findFirst (equalPosition creature) model.treasure
+            findFirst (equalPosition lcreature) model.treasure
 
         player =
-            equalPosition model creature
+            equalPosition model lcreature
 
         action =
-            if treasure /= Maybe.Nothing && not (List.member creature.statistics.creature [ Thing.Scorpion, Thing.MoonWizard, Thing.Demon ]) then
+            if treasure /= Maybe.Nothing && not (List.member lcreature.statistics.creature [ Thing.Scorpion, Thing.MoonWizard, Thing.Demon ]) then
                 "treasure"
             else if player then
                 "attack"
@@ -1869,20 +1867,20 @@ updateCreature creature ( model, cmd ) =
     in
     case action of
         "treasure" ->
-            if isTimeToAttack creature then
-                treasureCreature { creature | actionCounter = 0 } ( model, cmd )
+            if isTimeToAttack lcreature then
+                treasureCreature { lcreature | actionCounter = 0 } ( model, cmd )
             else
                 ( model, cmd )
 
         "attack" ->
-            if isTimeToAttack creature then
-                creatureAttacks { creature | actionCounter = 0 } ( model, cmd )
+            if isTimeToAttack lcreature then
+                creatureAttacks { lcreature | actionCounter = 0 } ( model, cmd )
             else
                 ( model, cmd )
 
         "move" ->
-            if isTimeToMove creature then
-                moveCreature { creature | actionCounter = 0 } ( model, cmd )
+            if isTimeToMove lcreature then
+                moveCreature { lcreature | actionCounter = 0 } ( model, cmd )
             else
                 ( model, cmd )
 
@@ -1921,13 +1919,13 @@ distance d =
             ((192 - 64) / (229 - 27)) ^ (d - 1)
 
         dx =
-            toString (256 * (1 - scale) / 2)
+            String.fromFloat (256 * (1 - scale) / 2)
 
         dy =
-            toString (152 * (1 - scale) / 2)
+            String.fromFloat (152 * (1 - scale) / 2)
 
         s =
-            toString scale
+            String.fromFloat scale
     in
     String.concat [ "translate(", dx, " ", dy, ") scale(", s, ")" ]
 
@@ -1973,28 +1971,14 @@ type alias RelativeRoom =
 
 absRoom2relRoom : Maze.Room -> Int -> RelativeRoom
 absRoom2relRoom room orientation =
-    let
-        ( left, front, right, back, floor, ceiling ) =
-            case orientation of
-                1 ->
-                    ( .north, .east, .south, .west, .floor, .ceiling )
+    case orientation of
+        1 -> { left = .north room, front = .east room, right = .south room, back = .west room, floor = .floor room, ceiling = .ceiling room }
 
-                2 ->
-                    ( .east, .south, .west, .north, .floor, .ceiling )
+        2 -> { left = .east room, front = .south room, right = .west room, back = .north room, floor = .floor room, ceiling = .ceiling room }
 
-                3 ->
-                    ( .south, .west, .north, .east, .floor, .ceiling )
+        3 -> { left = .south room, front = .west room, right = .north room, back = .east room, floor = .floor room, ceiling = .ceiling room }
 
-                _ ->
-                    ( .west, .north, .east, .south, .floor, .ceiling )
-    in
-    { left = left room
-    , front = front room
-    , right = right room
-    , back = back room
-    , floor = floor room
-    , ceiling = ceiling room
-    }
+        _ -> { left = .west room, front = .north room, right = .east room, back = .south room, floor = .floor room, ceiling = .ceiling room }
 
 
 features : RelativeRoom -> List Thing
@@ -2101,19 +2085,19 @@ tunnel x y t dir model =
         ( thisRoomMagic, thisRoomNormal ) =
             List.partition isMagic thisRoom
 
-        normalLight model obj =
-            if displayWizardDied model then
+        normalLight lmodel obj =
+            if displayWizardDied lmodel then
                 7
             else
                 obj.normalLight
 
-        magicLight model obj =
-            if displayWizardDied model then
+        magicLight lmodel obj =
+            if displayWizardDied lmodel then
                 19
             else
                 obj.magicLight
 
-        darkness model dist getLight =
+        darkness lmodel dist getLight =
             -- Usually, brightness is proportional to the luminosity of the
             -- source times the inverse square of the distance. In this model,
             -- brightness is constant for some distance depending on the
@@ -2121,10 +2105,10 @@ tunnel x y t dir model =
             -- units, until it is finally zero.
             let
                 activeTorch =
-                    Maybe.withDefault (item Thing.Empty 0) (List.head (List.filter isLitTorch model.inventory))
+                    Maybe.withDefault (item Thing.Empty 0) (List.head (List.filter isLitTorch lmodel.inventory))
 
                 exponent =
-                    (6 + round dist) - getLight model activeTorch
+                    (6 + round dist) - getLight lmodel activeTorch
 
                 pixelGap =
                     if exponent < 0 then
@@ -2138,13 +2122,13 @@ tunnel x y t dir model =
 
         svgNormal =
             if -1 < darkness model t normalLight then
-                [ Svg.g [ transform (distance t), strokeDasharray ("1, " ++ toString (darkness model t normalLight)), strokeDashoffset "5" ] (List.concat (List.map (\e -> image (foregroundColor model) e) thisRoomNormal)) ]
+                [ Svg.g [ transform (distance t), strokeDasharray ("1, " ++ String.fromInt (darkness model t normalLight)), strokeDashoffset "5" ] (List.concat (List.map (\e -> image (foregroundColor model) e) thisRoomNormal)) ]
             else
                 []
 
         svgMagic =
             if -1 < darkness model t magicLight then
-                [ Svg.g [ transform (distance t), strokeDasharray ("1, " ++ toString (darkness model t magicLight)), strokeDashoffset "5" ] (List.concat (List.map (\e -> image (foregroundColor model) e) thisRoomMagic)) ]
+                [ Svg.g [ transform (distance t), strokeDasharray ("1, " ++ String.fromInt (darkness model t magicLight)), strokeDashoffset "5" ] (List.concat (List.map (\e -> image (foregroundColor model) e) thisRoomMagic)) ]
             else
                 []
 
@@ -2159,10 +2143,10 @@ tunnel x y t dir model =
 
         peekingCreature turn thing side =
             let
-                ( nx, ny ) =
+                ( lnx, lny ) =
                     step model.level x y (cwTurn dir turn)
             in
-            if side == Maze.Open && thereIsAThing ( model.level, nx, ny ) model.monsters then
+            if side == Maze.Open && thereIsAThing ( model.level, lnx, lny ) model.monsters then
                 [ thing ]
             else
                 []
@@ -2181,7 +2165,7 @@ name object =
 
 
 foregroundColor model =
-    if model.level % 2 == 0 then
+    if (modBy 2 model.level) == 0 then
         "white"
     else
         "black"
@@ -2193,43 +2177,33 @@ backgroundColor model =
 
 statusBar model =
     Html.div
-        [ Html.Attributes.style
-            [ ( "color", backgroundColor model )
-            , ( "background", foregroundColor model )
-            , ( "font-family", "fantasy" )
-            ]
+        [ Html.Attributes.style "color" (backgroundColor model)
+        , Html.Attributes.style "background" (foregroundColor model)
+        , Html.Attributes.style "font-family" "fantasy"
         ]
         [ Html.table
-            [ Html.Attributes.style
-                [ ( "width", "100%" )
-                , ( "table-layout", "fixed" )
-                , ( "padding", "0px" )
-                , ( "border", "none" )
-                , ( "border-spacing", "0px" )
-                ]
+            [ Html.Attributes.style "width" "100%"
+            , Html.Attributes.style "table-layout" "fixed"
+            , Html.Attributes.style "padding" "0px"
+            , Html.Attributes.style "border" "none"
+            , Html.Attributes.style "border-spacing" "0px"
             ]
             [ Html.tr
                 []
                 [ Html.td
-                    [ Html.Attributes.style
-                        [ ( "text-align", "left" )
-                        ]
+                    [ Html.Attributes.style "text-align" "left"
                     ]
                     [ Html.text (name (getLeftHand model))
                     ]
                 , Html.td
-                    [ Html.Attributes.style
-                        [ ( "text-align", "center" )
-                        , ( "height", "30px" )
-                        , ( "font-size", model.heart )
-                        ]
+                    [ Html.Attributes.style "text-align" "center"
+                    , Html.Attributes.style "height" "30px"
+                    , Html.Attributes.style "font-size" model.heart
                     ]
                     [ Html.text (String.fromChar (Char.fromCode 9829))
                     ]
                 , Html.td
-                    [ Html.Attributes.style
-                        [ ( "text-align", "right" )
-                        ]
+                    [ Html.Attributes.style "text-align" "right"
                     ]
                     [ Html.text (name (getRightHand model))
                     ]
@@ -2244,33 +2218,27 @@ inputWindow model =
             Maybe.withDefault "" (Array.get n (Array.fromList model.history))
     in
     Html.div
-        [ Html.Attributes.style
-            [ ( "color", foregroundColor model )
-            , ( "background", backgroundColor model )
-            , ( "font-family", "fantasy" )
-            ]
+        [ Html.Attributes.style "color" (foregroundColor model)
+        , Html.Attributes.style "background" (backgroundColor model)
+        , Html.Attributes.style "font-family" "fantasy"
         ]
         [ Html.div [] [ Html.text (String.concat [ ". ", get 0 ]) ]
         , Html.div [] [ Html.text (String.concat [ ". ", get 1 ]) ]
         , Html.div [] [ Html.text (String.concat [ ". ", get 2 ]) ]
         , Html.form
-            [ Html.Attributes.style
-                []
-            , Html.Events.onWithOptions "submit" { preventDefault = True, stopPropagation = False } (Json.Decode.succeed Submit)
+            [ Html.Events.custom "submit" (Json.Decode.succeed { message = Submit, preventDefault = True, stopPropagation = False })
             ]
-            [ Html.div [ Html.Attributes.style [ ( "float", "left" ) ] ] [ Html.text ". " ]
-            , Html.div [ Html.Attributes.style [ ( "overflow", "hidden" ) ] ]
+            [ Html.div [ Html.Attributes.style "float" "left" ] [ Html.text ". " ]
+            , Html.div [ Html.Attributes.style "overflow" "hidden" ]
                 [ Html.input
-                    [ Html.Attributes.style
-                        [ ( "color", foregroundColor model )
-                        , ( "background", backgroundColor model )
-                        , ( "font-family", "fantasy" )
-                        , ( "padding", "0px" )
-                        , ( "width", "100%" )
-                        , ( "outline", "none" )
-                        , ( "border", "none" )
-                        , ( "font-size", "16px" )
-                        ]
+                    [ Html.Attributes.style "color" (foregroundColor model)
+                    , Html.Attributes.style "background" (backgroundColor model)
+                    , Html.Attributes.style "font-family" "fantasy"
+                    , Html.Attributes.style "padding" "0px"
+                    , Html.Attributes.style "width" "100%"
+                    , Html.Attributes.style "outline" "none"
+                    , Html.Attributes.style "border" "none"
+                    , Html.Attributes.style "font-size" "16px"
                     , autofocus True
                     , autocomplete False
                     , Html.Events.onInput Command
@@ -2293,16 +2261,17 @@ viewDungeon model =
         (tunnel model.x model.y 0 model.orientation model)
 
 
+viewScroll : String -> Model -> Html msg
 viewScroll adj model =
     let
         block x y colour =
-            Svg.path [ transform ("translate(" ++ toString x ++ " " ++ toString y ++ ")"), stroke colour, fill colour, d "M 0 0 L 3 0 L 3 3 L 0 3 Z" ] []
+            Svg.path [ transform ("translate(" ++ String.fromInt x ++ " " ++ String.fromInt y ++ ")"), stroke colour, fill colour, d "M 0 0 L 3 0 L 3 3 L 0 3 Z" ] []
 
         thing x y colour =
-            Svg.path [ transform ("translate(" ++ toString x ++ " " ++ toString y ++ ")"), stroke colour, fill colour, d "M 0 0 L 3 3 M 0 3 L 3 0" ] []
+            Svg.path [ transform ("translate(" ++ String.fromInt x ++ " " ++ String.fromInt y ++ ")"), stroke colour, fill colour, d "M 0 0 L 3 3 M 0 3 L 3 0" ] []
 
         hole x y colour =
-            Svg.path [ transform ("translate(" ++ toString x ++ " " ++ toString y ++ ")"), stroke colour, fill colour, d "M 1 1 L 2 1 L 2 2 L 1 2 Z" ] []
+            Svg.path [ transform ("translate(" ++ String.fromInt x ++ " " ++ String.fromInt y ++ ")"), stroke colour, fill colour, d "M 1 1 L 2 1 L 2 2 L 1 2 Z" ] []
 
         map =
             List.concat
@@ -2343,7 +2312,7 @@ viewScroll adj model =
         , Svg.Attributes.height "456"
         , Svg.Attributes.viewBox "0 0 256 152"
         ]
-        [ Svg.g [ transform ("translate(" ++ toString ((256 - 32 * 4) / 2) ++ "," ++ toString ((152 - 32 * 4) / 2) ++ ")") ]
+        [ Svg.g [ transform ("translate(" ++ String.fromFloat ((256 - 32 * 4) / 2) ++ "," ++ String.fromFloat ((152 - 32 * 4) / 2) ++ ")") ]
             (if adj == "seer" then
                 List.concat [ map, player, treasure, creatures ]
              else
@@ -2362,21 +2331,19 @@ viewText model =
 
                 [ a ] ->
                     [ Html.tr
-                        [ Html.Attributes.style
-                            [ ( "width", "100%" ) ]
-                        ]
+                        [ Html.Attributes.style "width" "100%" ]
                         [ Html.td
-                            [ Html.Attributes.style [ ( "padding", "0px 20px" ), ( "text-align", "right" ) ] ]
+                            [ Html.Attributes.style "padding" "0px 20px", Html.Attributes.style "text-align" "right" ]
                             [ Html.text a ]
                         , Html.td [] []
                         ]
                     ]
 
                 a :: b :: rest ->
-                    Html.tr [ Html.Attributes.style [ ( "width", "100%" ) ] ]
-                        [ Html.td [ Html.Attributes.style [ ( "padding", "0px 20px" ), ( "text-align", "right" ) ] ]
+                    Html.tr [ Html.Attributes.style "width" "100%" ]
+                        [ Html.td [ Html.Attributes.style "padding" "0px 20px", Html.Attributes.style "text-align" "right" ]
                             [ Html.text a ]
-                        , Html.td [ Html.Attributes.style [ ( "padding", "0px 20px" ), ( "text-align", "left" ) ] ] [ Html.text b ]
+                        , Html.td [ Html.Attributes.style "padding" "0px 20px", Html.Attributes.style "text-align" "left" ] [ Html.text b ]
                         ]
                         :: rows rest
 
@@ -2387,21 +2354,19 @@ viewText model =
 
                 [ a ] ->
                     [ Html.tr
-                        [ Html.Attributes.style
-                            [ ( "width", "100%" ) ]
-                        ]
+                        [ Html.Attributes.style "width" "100%" ]
                         [ Html.td
-                            [ Html.Attributes.style [ ( "padding", "0px 20px" ), ( "text-align", "right" ) ] ]
+                            [ Html.Attributes.style "padding" "0px 20px", Html.Attributes.style "text-align" "right" ]
                             [ a ]
                         , Html.td [] []
                         ]
                     ]
 
                 a :: b :: rest ->
-                    Html.tr [ Html.Attributes.style [ ( "width", "100%" ) ] ]
-                        [ Html.td [ Html.Attributes.style [ ( "padding", "0px 20px" ), ( "text-align", "right" ) ] ]
+                    Html.tr [ Html.Attributes.style "width" "100%" ]
+                        [ Html.td [ Html.Attributes.style "padding" "0px 20px", Html.Attributes.style "text-align" "right" ]
                             [ a ]
-                        , Html.td [ Html.Attributes.style [ ( "padding", "0px 20px" ), ( "text-align", "left" ) ] ] [ b ]
+                        , Html.td [ Html.Attributes.style "padding" "0px 20px" , Html.Attributes.style "text-align" "left" ] [ b ]
                         ]
                         :: rowsHtml rest
 
@@ -2409,33 +2374,26 @@ viewText model =
             List.map (\e -> name e.object) (List.filter (equalPosition model) model.treasure)
     in
     Html.div
-        [ Html.Attributes.style
-            [ ( "color", foregroundColor model )
-            , ( "background", backgroundColor model )
-            , ( "font-family", "fantasy" )
-            , ( "width", "768px" )
-            , ( "height", "456px" )
-            ]
+        [ Html.Attributes.style "color" (foregroundColor model)
+        , Html.Attributes.style "background" (backgroundColor model)
+        , Html.Attributes.style "font-family" "fantasy"
+        , Html.Attributes.style "width" "768px"
+        , Html.Attributes.style "height" "456px"
         ]
         [ Html.table
-            [ Html.Attributes.style
-                [ ( "width", "100%" )
-                , ( "table-layout", "fixed" )
-                , ( "border", "none" )
-                , ( "border-spacing", "0px" )
-                ]
+            [ Html.Attributes.style "width" "100%"
+            , Html.Attributes.style "table-layout" "fixed"
+            , Html.Attributes.style "border" "none"
+            , Html.Attributes.style "border-spacing" "0px"
             ]
             (List.concat
                 [ Html.tr
-                    [ Html.Attributes.style
-                        [ ( "width", "100%" ), ( "text-align", "center" ) ]
+                    [ Html.Attributes.style "width" "100%"
+                    , Html.Attributes.style "text-align" "center"
                     ]
                     [ Html.td
-                        [ Html.Attributes.attribute
-                            "colspan"
-                            "2"
-                        ]
-                        [ Html.span [ Html.Attributes.style [ ( "font-style", "italic" ) ] ] [ Html.text "- In This Room -" ] ]
+                        [ Html.Attributes.attribute "colspan" "2" ]
+                        [ Html.span [ Html.Attributes.style "font-style" "italic" ] [ Html.text "- In This Room -" ] ]
                     ]
                     :: rows
                         (if List.any (equalPosition model) model.monsters then
@@ -2444,27 +2402,21 @@ viewText model =
                             objects
                         )
                 , [ Html.tr
-                        [ Html.Attributes.style
-                            [ ( "width", "100%" ), ( "text-align", "center" ) ]
+                        [ Html.Attributes.style "width" "100%"
+                        , Html.Attributes.style "text-align" "center"
                         ]
                         [ Html.td
-                            [ Html.Attributes.attribute
-                                "colspan"
-                                "2"
-                            ]
+                            [ Html.Attributes.attribute "colspan" "2" ]
                             [ Html.text (String.repeat 41 " ") ]
                         ]
                   ]
                 , Html.tr
-                    [ Html.Attributes.style
-                        [ ( "width", "100%" ), ( "text-align", "center" ) ]
+                    [ Html.Attributes.style "width" "100%"
+                    , Html.Attributes.style "text-align" "center"
                     ]
                     [ Html.td
-                        [ Html.Attributes.attribute
-                            "colspan"
-                            "2"
-                        ]
-                        [ Html.span [ Html.Attributes.style [ ( "font-style", "italic" ) ] ] [ Html.text "- Backpack -" ] ]
+                        [ Html.Attributes.attribute "colspan" "2" ]
+                        [ Html.span [ Html.Attributes.style "font-style" "italic" ] [ Html.text "- Backpack -" ] ]
                     ]
                     :: rowsHtml (List.map (\e -> backpack model e) model.inventory)
                 ]
@@ -2475,32 +2427,33 @@ viewText model =
 backpack model object =
     if isLitTorch object then
         Html.span
-            [ Html.Attributes.style
-                [ ( "color", backgroundColor model ), ( "background-color", foregroundColor model ) ]
+            [ Html.Attributes.style "color" (backgroundColor model)
+            , Html.Attributes.style "background-color" (foregroundColor model)
             ]
             [ Html.text (name object) ]
     else
         Html.span [] [ Html.text (name object) ]
 
 
-wizardBuzzIn creature frame =
+wizardBuzzIn wiz frame =
     div
-        [ Html.Attributes.style
-            [ ( "width", "768px" )
-            , ( "margin-left", "auto" )
-            , ( "margin-right", "auto" )
-            , ( "display", "block" )
-            , ( "font-size", "16px" )
-            ]
+        [ Html.Attributes.style "width" "768px"
+        , Html.Attributes.style "margin-left" "auto"
+        , Html.Attributes.style "margin-right" "auto"
+        , Html.Attributes.style "display" "block"
+        , Html.Attributes.style "font-size" "16px"
         ]
-        [ div [ Html.Attributes.style [ ( "font-size", "16px" ), ( "font-family", "fantasy" ) ] ]
+        [ div
+            [ Html.Attributes.style "font-size" "16px"
+            , Html.Attributes.style "font-family" "fantasy"
+            ]
             [ svg
                 [ Svg.Attributes.width "768"
                 , Svg.Attributes.height "456"
                 , Svg.Attributes.viewBox "0 0 256 152"
                 ]
-                [ Svg.g [ strokeDasharray ("1," ++ toString (32 - (2 * frame))) ]
-                    (image "black" creature)
+                [ Svg.g [ strokeDasharray ("1," ++ String.fromInt (32 - (2 * frame))) ]
+                    (image "black" wiz)
                 ]
             ]
         ]
@@ -2508,75 +2461,71 @@ wizardBuzzIn creature frame =
 
 prepare model =
     div
-        [ Html.Attributes.style
-            [ ( "width", "768px" )
-            , ( "margin-left", "auto" )
-            , ( "margin-right", "auto" )
-            , ( "display", "block" )
-            , ( "font-size", "16px" )
-            ]
+        [ Html.Attributes.style "width" "768px"
+        , Html.Attributes.style "margin-left" "auto"
+        , Html.Attributes.style "margin-right" "auto"
+        , Html.Attributes.style "display" "block"
+        , Html.Attributes.style "font-size" "16px"
         ]
         [ div
-            [ Html.Attributes.style
-                [ ( "align-items", "center" )
-                , ( "height", "456px" )
-                , ( "display", "flex" )
-                , ( "justify-content", "center" )
-                , ( "font-family", "fantasy" )
-                , ( "color", foregroundColor model )
-                ]
+            [ Html.Attributes.style "align-items" "center"
+            , Html.Attributes.style "height" "456px"
+            , Html.Attributes.style "display" "flex"
+            , Html.Attributes.style "justify-content" "center"
+            , Html.Attributes.style "font-family" "fantasy"
+            , Html.Attributes.style "color" (foregroundColor model)
             ]
             [ Html.text "Prepare!" ]
         ]
 
 
-wizardMessage creature line1 line2 line3 =
+wizardMessage wiz line1 line2 line3 =
     div
-        [ Html.Attributes.style
-            [ ( "width", "768px" )
-            , ( "margin-left", "auto" )
-            , ( "margin-right", "auto" )
-            , ( "display", "block" )
-            , ( "font-size", "16px" )
-            ]
+        [ Html.Attributes.style "width" "768px"
+        , Html.Attributes.style "margin-left" "auto"
+        , Html.Attributes.style "margin-right" "auto"
+        , Html.Attributes.style "display" "block"
+        , Html.Attributes.style "font-size" "16px"
         ]
-        [ div [ Html.Attributes.style [ ( "font-size", "16px" ), ( "font-family", "fantasy" ) ] ]
+        [ div
+            [ Html.Attributes.style "font-size" "16px"
+            , Html.Attributes.style "font-family" "fantasy"
+            ]
             [ svg
                 [ Svg.Attributes.width "768"
                 , Svg.Attributes.height "456"
                 , Svg.Attributes.viewBox "0 0 256 152"
                 ]
-                (image "black" creature)
-            , div [ Html.Attributes.style [ ( "width", "768px" ), ( "text-align", "center" ) ] ] [ Html.text line1 ]
-            , div [ Html.Attributes.style [ ( "width", "768px" ), ( "text-align", "center" ) ] ] [ Html.text line2 ]
-            , div [ Html.Attributes.style [ ( "width", "768px" ), ( "text-align", "center" ) ] ] [ Html.text line3 ]
+                (image "black" wiz)
+            , div [ Html.Attributes.style "width" "768px", Html.Attributes.style "text-align" "center" ] [ Html.text line1 ]
+            , div [ Html.Attributes.style "width" "768px", Html.Attributes.style "text-align" "center" ] [ Html.text line2 ]
+            , div [ Html.Attributes.style "width" "768px", Html.Attributes.style "text-align" "center" ] [ Html.text line3 ]
             ]
         ]
 
 
-wizardBuzzOut creature frame =
+wizardBuzzOut wiz frame =
     div
-        [ Html.Attributes.style
-            [ ( "width", "768px" )
-            , ( "margin-left", "auto" )
-            , ( "margin-right", "auto" )
-            , ( "display", "block" )
-            , ( "font-size", "16px" )
-            ]
+        [ Html.Attributes.style "width" "768px"
+        , Html.Attributes.style "margin-left" "auto"
+        , Html.Attributes.style "margin-right" "auto"
+        , Html.Attributes.style "display" "block"
+        , Html.Attributes.style "font-size" "16px"
         ]
-        [ div [ Html.Attributes.style [ ( "font-size", "16px" ), ( "font-family", "fantasy" ) ] ]
+        [ div [ Html.Attributes.style "font-size" "16px", Html.Attributes.style "font-family" "fantasy" ]
             [ svg
                 [ Svg.Attributes.width "768"
                 , Svg.Attributes.height "456"
                 , Svg.Attributes.viewBox "0 0 256 152"
                 ]
-                [ Svg.g [ strokeDasharray ("1," ++ toString (2 * frame)) ]
-                    (image "black" creature)
+                [ Svg.g [ strokeDasharray ("1," ++ String.fromInt (2 * frame)) ]
+                    (image "black" wiz)
                 ]
             ]
         ]
 
 
+viewIntro : Model -> Html msg
 viewIntro model =
     if model.frame < 17 then
         wizardBuzzIn MoonWizard model.frame
@@ -2608,6 +2557,7 @@ viewIntermission model =
         wizardBuzzOut MoonWizard (model.frame - 33)
 
 
+viewEnding : Model -> Html msg
 viewEnding model =
     if model.frame < 17 then
         wizardBuzzIn StarWizard model.frame
@@ -2625,14 +2575,12 @@ view model =
         viewDead model
     else if model.display /= "intro" && not (isFainted model) && model.status /= "dead" then
         div
-            [ Html.Attributes.style
-                [ ( "width", "768px" )
-                , ( "margin-left", "auto" )
-                , ( "margin-right", "auto" )
-                , ( "display", "block" )
-                , ( "font-size", "16px" )
-                , ( "background", backgroundColor model )
-                ]
+            [ Html.Attributes.style "width" "768px"
+            , Html.Attributes.style "margin-left" "auto"
+            , Html.Attributes.style "margin-right" "auto"
+            , Html.Attributes.style "display" "block"
+            , Html.Attributes.style "font-size" "16px"
+            , Html.Attributes.style "background" (backgroundColor model)
             ]
             [ (case model.display of
                 "dungeon" ->
@@ -2660,7 +2608,6 @@ view model =
               else
                 -- died!!!!
                 div [] []
-            , div [ Html.Attributes.style [ ( "display", "none" ) ] ] [ Html.text (toString model) ]
             ]
     else
         viewIntro model

@@ -10,7 +10,7 @@
 --   all equipment but ring disappears when wizard defeated
 --   examine: "! Creature !" should be centred
 
---   post to github site
+--   font on windows
 
 --   exact lexing for incanting and saving
 --   map goes away if scroll leaves hand

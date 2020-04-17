@@ -11,7 +11,7 @@
     <script src="localstorage.js"></script>
     <script>
       var node = document.getElementById('elm');
-      var app = Elm.Main.embed(node);
+      var app = Elm.Main.init({node: node});
       playSoundPort(app);
       localStoragePort(app);
       </script>

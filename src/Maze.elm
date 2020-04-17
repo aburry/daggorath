@@ -85,7 +85,7 @@ level lvl =
 
 
 getFeature : Int -> Int -> Int -> List { x : Int, y : Int, feature : Feature } -> Feature
-getFeature level x y features =
+getFeature lvl x y features =
     let
         matchPosition e =
             ( e.x, e.y ) == ( x, y )
